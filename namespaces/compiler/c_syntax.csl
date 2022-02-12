@@ -411,7 +411,7 @@ pwi ftfw1
 //'wtdInclude find 'DLNode find wordStructPrint  
 //pause
 'wtdInclude find dup hex p 'C.Experimental.Word find wordStructPrint 
-//'wtdInclude find d: -> State @ hex p  
+//pause
 cOn
 //printf ( "\n_Identifier.CodeSize = %lx, _Identifier.CodeSize = %d", _Identifier.CodeSize, _Identifier.CodeSize ) ;
 printf ( "\nIdentifier.size = %d, WordData.size = %d, Stack.size = %d", Identifier.size, WordData.size, Experimental.Stack.size ) ;
@@ -432,6 +432,9 @@ void ctti ( w | p l )
     printf ( "\nDefinition = %lx", l ) ; p = w->S_Name ; ps(p) ; p = w->Name ; ps(p) ; 
     p = w->W_Filename ;  ps(p) ; p = w->W_Filename ; ps (p) ; 
     p = w->W_WordData->Filename ; ps (p) ; 
+    p = w->W_WordData ;
+    //<dbg> ptrStructNamePrint ( p, "WordData" ) ;
+    ptrStructNamePrint ( p, "WordData" ) ;
 }
 ctti ( find ( 'ctti ) ) ; //pause () ;
 cOff

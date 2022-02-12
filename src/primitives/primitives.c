@@ -104,8 +104,9 @@ CPrimitive CPrimitives [] = {
     { "void_return", 0, 0, 0, CSL_Void_Return, IMMEDIATE, 0, 0, "C", "Root" },
     { "rax_return", 0, 0, 0, CSL_RAX_Return, IMMEDIATE, 0, 0, "C", "Root" },
     { ",", 0, 0, 0, CSL_C_Comma, IMMEDIATE | RIGHT_PAREN | KEYWORD, 0, 0, "C", "Root" },
-    { "wordNameStructPrint", 0, 0, 0, CSL_Word_Name_ClassStructure_PrintData, 0, 0, 0, "C", "Root" },
-    { "wordStructPrint", 0, 0, 0, CSL_Word_ClassStructure_PrintData, 0, 0, 0, "C", "Root" },
+    { "wordNameStructPrint", 0, 0, 0, CSL_Word_Name_ClassStructure_PrintData, PREFIXABLE, 0, 0, "C", "Root" },
+    { "wordStructPrint", 0, 0, 0, CSL_Word_ClassStructure_PrintData, PREFIXABLE, 0, 0, "C", "Root" },
+    { "ptrStructNamePrint", 0, 0, 0, CSL_Ptr_ClassStructureName_PrintData, PREFIXABLE, 0, 0, "C", "Root" },
 
     { ",", 0, 0, 0, CSL_C_Comma, IMMEDIATE | RIGHT_PAREN | KEYWORD, 0, 0, "Asm", "Root" },
     

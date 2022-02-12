@@ -1,5 +1,6 @@
 
 5 
+//verbosity 2 =
 c_syntaxOn
 C 'Experimental namespace
 C.Experimental
@@ -138,46 +139,6 @@ typedef struct
     AttributeInfo n_Attributes ;
 } DLNode, Node, ListNode, DLList, List ;
 
-#if 0
-typedef struct _Identifier // _Symbol
-{
-    DLNode S_Node ;
-    int64 CodeSize ;
-    byte * S_Name ;
-    uint64 State ;
-    dllist * S_SymbolList ;
-    uint64 S_DObjectValue ; // nb! DynamicObject value can not be a union with S_SymbolList
-    uint64 * S_PtrToValue ; // because we copy words with Compiler_PushCheckAndCopyDuplicates and we want the original value
-    block Definition ;
-    union
-    {
-        uint64 S_Value ;
-        byte * S_BytePtr ;
-        byte * S_Object ;
-        struct _Identifier * S_ValueWord ;
-    } ;
-    union // leave this here so we can add a ListObject to a namespace
-    {
-        struct _Identifier * S_ContainingNamespace ;
-        struct _Identifier * S_ContainingList ;
-        struct _Identifier * S_Prototype ;
-    } ;
-    union
-    {
-        uint64 S_Value2 ;
-        dlnode * S_Node2 ;
-        byte * S_pb_Data2 ;
-    } ;
-    union
-    {
-        uint64 S_Value3 ;
-        dlnode * S_Node3 ;
-        byte * S_pb_Data3 ;
-    } ;
-    struct _WordData * W_WordData ;
-} Identifier, ID, Word, Namespace, Vocabulary, Class, DynamicObject, DObject, ListObject, Symbol, MemChunk, HistoryStringNode, Buffer, CaseNode ;
-#endif
-
 typedef struct _WordData
 {
     uint64 RunType ;
@@ -218,7 +179,7 @@ typedef struct _WordData
     union
     {
         int64 * WD_ArrayDimensions ;
-        byte *WD_OriginalCodeText ; // arrays don't have source code
+        byte * WD_OriginalCodeText ; // arrays don't have source code
     } ;
     int64 WD_ArrayNumberOfDimensions ;
     Stack * WD_NamespaceStack ; // arrays don't have runtime debug code

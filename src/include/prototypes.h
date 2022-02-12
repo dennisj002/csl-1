@@ -1318,13 +1318,12 @@ void TDSCI_Print_Field(int64 t_type, int64 size);
 void TDSCI_DebugPrintWord(Word *word);
 Boolean Parser_Check_Do_CommentWord(Word *word);
 Boolean Parser_Check_Do_Debug_Token(byte *token);
-void A_Parser_Debug(void);
 byte *TDSCI_ReadToken(void);
 Word *_CSL_TypedefAlias(Word *word0, byte *name, Namespace *addToNs, int64 size);
 Word *Parse_Do_IdentifierAlias(byte *token, int64 size);
 void CSL_Parse_Error(byte *msg, byte *token);
 TDSCI *_Object_Continue_PrintStructuredData(byte *objectBits);
-TDSCI *Object_PrintStructuredData(byte *objectBits, byte *typedefString);
+TDSCI *Object_PrintStructuredData(byte *objectBits, Word *typedefWord);
 /* src/basis/interpreters.c */
 byte *Interpret_C_Until_NotIncluding_Token5(Interpreter *interp, byte *end1, byte *end2, byte *end3, byte *end4, byte *end5, byte *delimiters, Boolean newlineBreakFlag, Boolean charsFlag);
 byte *Interpret_Until_Token(Interpreter *interp, byte *end, byte *delimiters);
@@ -2034,6 +2033,7 @@ void CSL_ParseObject(void);
 void CSL_DoubleQuoteMacro(void);
 void _CSL_Word_ClassStructure_PrintData(Word *typedefWord0, Word *word);
 void CSL_Word_Name_ClassStructure_PrintData(void);
+void CSL_Ptr_ClassStructureName_PrintData(void);
 void CSL_Word_ClassStructure_PrintData(void);
 /* src/primitives/interpreters.c */
 void CSL_DoWord(void);

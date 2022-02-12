@@ -246,7 +246,7 @@
 #define OBJECT_OPERATOR     ( (uint64) 1 << 22 ) 
 #define DOT                 OBJECT_OPERATOR              
 
-#define PREFIXABLE    ( (uint64) 1 << 23 ) 
+#define PREFIXABLE          ( (uint64) 1 << 23 ) 
 #define COMMENT             ( (uint64) 1 << 24 ) 
 #define NO_OP_WORD          ( (uint64) 1 << 25 ) 
 #define SYNTACTIC           ( (uint64) 1 << 26 ) 

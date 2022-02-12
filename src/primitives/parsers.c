@@ -104,7 +104,7 @@ _CSL_Word_ClassStructure_PrintData ( Word * typedefWord0, Word * word )
     Printf ( "\n\t%16s :: size = %d :: at : %016lx", typedefWord->Name, //tdsci->TdsciToken, 
         ( int64 ) _CSL_VariableValueGet ( typedefWord->Name, ( byte* ) "size" ), dataBits ) ; //CSL_GetAndSet_ObjectByteSize ( tdsci->Tdsci_Field_Type_Namespace ),
         //&tdsci->DataPtr [ tdsci->Tdsci_Offset ] ) ;
-    if ( typedefWord && word ) Object_PrintStructuredData ( dataBits, typedefWord->W_OriginalCodeText ) ;
+    if ( typedefWord && word ) Object_PrintStructuredData ( dataBits, typedefWord ) ;
 }
 
 void
@@ -115,6 +115,17 @@ CSL_Word_Name_ClassStructure_PrintData ( )
     byte * token1 = ( byte* ) DataStack_Pop ( ) ;
     Word * word = Finder_Word_FindUsing ( _Finder_, token1, 0 ) ;
     _CSL_Word_ClassStructure_PrintData ( typedefWord, word ) ;
+}
+
+void
+CSL_Ptr_ClassStructureName_PrintData ( )
+{
+    byte * token = ( byte* ) DataStack_Pop ( ) ;
+    Word * typedefWord = Finder_Word_FindUsing ( _Finder_, token, 0 ) ;
+    typedefWord = Word_UnAlias ( typedefWord ) ;
+    byte * ptr = (byte*) DataStack_Pop ( ) ;
+    //_CSL_Word_ClassStructure_PrintData ( typedefWord, ptr ) ;
+    Object_PrintStructuredData ( ptr, typedefWord ) ;
 }
 
 void

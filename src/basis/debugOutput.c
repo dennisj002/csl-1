@@ -114,7 +114,7 @@ _Debugger_ShowInfo ( Debugger * debugger, byte * prompt, int64 signal, int64 for
     {
         Context * cntx = _Context_ ;
         ReadLiner * rl = cntx->ReadLiner0 ;
-        byte *location = ( rl->Filename ) ? rl->Filename : ( byte* ) "<command line>" ;
+        byte *location = Context_Location ( ) ; //( rl->Filename ) ? rl->Filename : Context_Location ( ) ;//( byte* ) "<command line>" ;
         byte signalAscii [ 128 ] ;
         int64 iw = false ;
         Word * word = debugger->w_Word ? debugger->w_Word : ( ( ! debugger->Token ) ? ( _Context_->CurrentlyRunningWord ? _Context_->CurrentlyRunningWord : _Context_->CurrentTokenWord ) : 0 ) ;
@@ -149,7 +149,8 @@ _Debugger_ShowInfo ( Debugger * debugger, byte * prompt, int64 signal, int64 for
 
         DebugColors ;
 
-        if ( ( location == debugger->Filename ) && ( GetState ( debugger, DBG_FILENAME_LOCATION_SHOWN ) ) ) location = ( byte * ) "..." ;
+        if ( ( location == debugger->Filename ) && ( GetState ( debugger, DBG_FILENAME_LOCATION_SHOWN ) ) ) 
+            location = ( byte * ) "..." ;
         SetState ( debugger, DBG_FILENAME_LOCATION_SHOWN, true ) ;
 
         if ( token0 ) CSL_Show_SourceCode_TokenLine ( word, prompt, signal, token0, signalAscii ) ;
@@ -163,7 +164,7 @@ _Debugger_ShowInfo ( Debugger * debugger, byte * prompt, int64 signal, int64 for
                 cc_line ) ;
         }
         DefaultColors ;
-        if ( ! String_Equal ( "...", location ) ) debugger->Filename = location ;
+//        if ( ! String_Equal ( "...", location ) ) debugger->Filename = location ;
         debugger->LastShowInfoWord = word ;
     }
     else SetState_TrueFalse ( _Debugger_, DBG_AUTO_MODE_ONCE, true ) ;
