@@ -24,6 +24,15 @@
 // TYPED_FIELD :: TYPEDEF | TYPE
 
 // we have read the idField : identifier = token
+#if 1
+
+void
+_Parse_DoArray ( )
+{
+    TDSCI_ReadToken ( ) ;
+    Parse_Array ( ) ;
+}
+#endif
 
 void
 Parse_Identifier ( int64 t_type )
@@ -32,8 +41,8 @@ Parse_Identifier ( int64 t_type )
     byte *identifier = tdsci->TdsciToken ;
     Word * id, *addToNs ;
 
-#if 1 // debug
-    if ( String_Equal ( identifier, "n_Attributes" ) )
+#if 0 // debug
+    if ( String_Equal ( identifier, "TypeSignature" ) && ( GetState ( tdsci, TDSCI_PRINT ) ) )
         //if ( String_Equal ( identifier, "n_InUseFlag" ) ) //"T_ChunkSize" ) )
         Printf ( "" ) ;
 #endif    
@@ -41,9 +50,12 @@ Parse_Identifier ( int64 t_type )
     tdsci->FieldName = identifier ;
     if ( GetState ( tdsci, TDSCI_PRINT ) )
     {
-        if ( t_type == TD_TYPE_FIELD ) TDSCI_Print_Field ( t_type, tdsci->Tdsci_Field_Size ) ;
+        if ( t_type & TD_ARRAY_FIELD ) _Parse_DoArray ( ) ;
+        if ( t_type & TD_TYPE_FIELD ) TDSCI_Print_Field ( t_type, tdsci->Tdsci_Field_Size ) ;
+        if ( t_type & TD_ARRAY_FIELD )
+            Dump ( &tdsci->DataPtr [ tdsci->Tdsci_Offset ], tdsci->Tdsci_Field_Size, 16 ) ;
     }
-    else if ( t_type == TD_TYPE_FIELD )
+    else if ( t_type & TD_TYPE_FIELD )
     {
         // with a nameless struct or union identifier are added to the background namespace
         addToNs = ( tdsci->Tdsci_StructureUnion_Namespace && tdsci->Tdsci_StructureUnion_Namespace->Name ) ?
@@ -56,8 +68,9 @@ Parse_Identifier ( int64 t_type )
         }
         Class_Size_Set ( id, tdsci->Tdsci_Field_Size ) ; //+=  ( tdsci->Tdsci_Field_Size % 8 ) ) ;
         id->Offset = tdsci->Tdsci_Offset ;
+        if ( t_type & TD_ARRAY_FIELD ) _Parse_DoArray ( ) ;
     }
-    else if ( t_type == PRE_STRUCTURE_ID )
+    else if ( t_type & PRE_STRUCTURE_ID )
     {
         tdsci->Tdsci_StructureUnion_Namespace = id = DataObject_New ( CLASS, 0, identifier, 0, 0, 0, 0, 0, 0, 0, 0, - 1 ) ;
         id->W_ObjectAttributes |= ( STRUCT | NAMESPACE ) ; //??
@@ -65,7 +78,7 @@ Parse_Identifier ( int64 t_type )
         tdsci->StructureUnionName = identifier ;
 
     }
-    else if ( t_type == POST_STRUCTURE_ID ) //&& GetState ( tdsci, TDSCI_STRUCTURE_COMPLETED ) )
+    else if ( t_type & POST_STRUCTURE_ID ) //&& GetState ( tdsci, TDSCI_STRUCTURE_COMPLETED ) )
     {
         if ( tdsci->Tdsci_StructureUnion_Namespace ) id = Parse_Do_IdentifierAlias ( identifier, tdsci->Tdsci_StructureUnion_Size ) ;
         else tdsci->Tdsci_StructureUnion_Namespace = id = DataObject_New ( CLASS, 0, identifier, 0, 0, 0, 0, 0, tdsci->Tdsci_InNamespace, 0, - 1, - 1 ) ;
@@ -74,6 +87,7 @@ Parse_Identifier ( int64 t_type )
         id->Offset = tdsci->Tdsci_Offset ; //- tdsci->Tdsci_StructureUnion_Size ; // ??
         _CSL_Set_WordSourceCode ( _CSL_, tdsci->Tdsci_StructureUnion_Namespace, 1 ) ;
         //SetState ( tdsci, TDSCI_POST_STRUCT, true ) ;
+        //if ( t_type & TD_ARRAY_FIELD ) _Parse_DoArray ( ) ;
     }
     else CSL_Parse_Error ( "Parse_Identifier : No identifier type given", identifier ) ;
 
@@ -86,6 +100,7 @@ Parse_Array ( )
 {
     TDSCI * tdsci = TDSCI_GetTop ( ) ;
     int64 arrayDimensions [ 32 ] ; // 32 : max dimensions for now
+    //if ( GetState ( tdsci, TDSCI_PRINT ) ) Printf ( "" ) ; //debug
     int64 size = tdsci->Tdsci_Field_Size, i, arrayDimensionSize ;
     byte *token = tdsci->TdsciToken ;
     memset ( arrayDimensions, 0, sizeof (arrayDimensions ) ) ;
@@ -94,8 +109,8 @@ Parse_Array ( )
     {
         if ( token && ( token[0] == '[' ) )
         {
-            CSL_InterpretNextToken ( ) ; // next token must be an integer for the array dimension size
-            arrayDimensionSize = DataStack_Pop ( ) ;
+            token = TDSCI_ReadToken ( ) ;
+            arrayDimensionSize = atoi ( token ) ;
             size = size * arrayDimensionSize ;
             tdsci->Tdsci_Field_Size = size ;
             token = TDSCI_ReadToken ( ) ;
@@ -105,15 +120,25 @@ Parse_Array ( )
         }
         else
         {
+#if 0            
             if ( GetState ( tdsci, TDSCI_PRINT ) )
             {
-                __CSL_Dump ( &tdsci->DataPtr [ tdsci->Tdsci_Offset ], tdsci->Tdsci_Field_Size, 16 ) ;
+                Dump ( &tdsci->DataPtr [ tdsci->Tdsci_Offset ], tdsci->Tdsci_Field_Size, 16 ) ;
             }
-            else if ( i )
+            //else 
+#endif            
+            if ( i )
             {
-                tdsci->Tdsci_Field_Object->ArrayDimensions = ( int64 * ) Mem_Allocate ( i * sizeof (int64 ), DICTIONARY ) ; //tdsci->Tdsci_Field_Size, DICTIONARY ) ;
-                MemCpy ( tdsci->Tdsci_Field_Object->ArrayDimensions, arrayDimensions, i * sizeof (int64 ) ) ; //tdsci->Tdsci_Field_Size ) ;
-                tdsci->Tdsci_Field_Object->ArrayNumberOfDimensions = i ;
+                tdsci->Tdsci_ArrayDimensions = ( int64 * ) Mem_Allocate ( i * sizeof (int64 ), DICTIONARY ) ; //tdsci->Tdsci_Field_Size, DICTIONARY ) ;
+                MemCpy ( tdsci->Tdsci_ArrayDimensions, arrayDimensions, i * sizeof (int64 ) ) ; //tdsci->Tdsci_Field_Size ) ;
+                tdsci->Tdsci_ArrayNumberOfDimensions = i ;
+#if 1               
+                if ( tdsci->Tdsci_Field_Object )
+                {
+                    tdsci->Tdsci_Field_Object->ArrayDimensions = tdsci->Tdsci_ArrayDimensions ; //tdsci->Tdsci_Field_Size, DICTIONARY ) ;
+                    tdsci->Tdsci_Field_Object->ArrayNumberOfDimensions = tdsci->Tdsci_ArrayNumberOfDimensions ;
+                }
+#endif            
             }
             break ;
         }
@@ -161,6 +186,8 @@ Parse_TypeNamespace_CheckForPointer ( int64 t_type )
     return rtrn ;
 }
 
+#if 1
+
 void
 Parse_Identifier_Or_Array_Field ( int64 t_type )
 {
@@ -169,13 +196,35 @@ Parse_Identifier_Or_Array_Field ( int64 t_type )
     if ( token && ( token [0] != ';' ) )
     {
         Parse_TypeNamespace_CheckForPointer ( t_type ) ;
+        token = Lexer_Peek_Next_NonDebugTokenWord ( _Lexer_, 0 ) ;
+        if ( token && ( token [0] == '[' ) ) t_type |= TD_ARRAY_FIELD ; // we want to read the array dimensions before we print
         Parse_Identifier ( t_type ) ;
-        token = TDSCI_ReadToken ( ) ;
+        if ( tdsci->TdsciToken [0] != ';' ) token = TDSCI_ReadToken ( ) ;
         if ( token && ( token [0] == '[' ) ) Parse_Array ( ) ;
-        if ( t_type == TD_TYPE_FIELD ) Parse_IntraStructFieldAccounting ( ) ;
+        if ( t_type & TD_TYPE_FIELD ) Parse_IntraStructFieldAccounting ( ) ;
         SetState ( tdsci, TDSCI_POINTER, false ) ;
     }
 }
+#else
+
+void
+Parse_Identifier_Or_Array_Field ( int64 t_type )
+{
+    TDSCI * tdsci = TDSCI_GetTop ( ) ;
+    byte *token = tdsci->TdsciToken ;
+    if ( token && ( token [0] != ';' ) )
+    {
+        Parse_TypeNamespace_CheckForPointer ( t_type ) ;
+        token = Lexer_Peek_Next_NonDebugTokenWord ( _Lexer_, 0 ) ;
+        if ( token && ( token [0] == '[' ) ) t_type |= TD_ARRAY_FIELD ;
+        Parse_Identifier ( t_type ) ;
+        if ( ! ( t_type & TD_ARRAY_FIELD ) ) token = TDSCI_ReadToken ( ) ;
+        //if ( token && ( token [0] == '[' ) ) Parse_Array ( ) ;
+        if ( t_type & TD_TYPE_FIELD ) Parse_IntraStructFieldAccounting ( ) ;
+        SetState ( tdsci, TDSCI_POINTER, false ) ;
+    }
+}
+#endif
 
 void
 Parse_Identifier_Fields ( int64 t_type )
@@ -586,7 +635,9 @@ TDSCI_Print_Field ( int64 t_type, int64 size )
     int64 value ;
     if ( tdsci->Tdsci_Field_Type_Namespace )
     {
-        if ( ( ! GetState ( tdsci, TDSCI_POINTER ) ) && ( tdsci->Tdsci_Field_Type_Namespace
+        byte * dataPtr = & tdsci->DataPtr [ tdsci->Tdsci_Offset ] ;
+        if ( t_type & TD_ARRAY_FIELD ) TDSCI_PrintArrayField ( dataPtr ) ;
+        else if ( ( ! GetState ( tdsci, TDSCI_POINTER ) ) && ( tdsci->Tdsci_Field_Type_Namespace
             && ( tdsci->Tdsci_Field_Type_Namespace->W_ObjectAttributes & STRUCTURE_TYPE )
             && ( ! ( tdsci->Tdsci_Field_Type_Namespace->W_ObjectAttributes & T_POINTER ) ) ) )
         {
@@ -594,7 +645,6 @@ TDSCI_Print_Field ( int64 t_type, int64 size )
         }
         else
         {
-            byte * dataPtr = & tdsci->DataPtr [ tdsci->Tdsci_Offset ] ;
             //tdsci->DataPtr = dataPtr ;
             switch ( size )
             {
@@ -626,18 +676,38 @@ TDSCI_Print_Field ( int64 t_type, int64 size )
             }
             //byte * dataPtr = tdsci->Tdsci_Field_Object ? &tdsci->DataPtr [ tdsci->Tdsci_Field_Object->Offset ] : &tdsci->DataPtr [ tdsci->Tdsci_Offset ] ;
             //byte * dataPtr = & tdsci->DataPtr [ tdsci->Tdsci_Offset ] ;
-            if ( size == 1 )
+            //else
             {
-                Printf ( format, dataPtr, tdsci->Tdsci_Field_Type_Namespace->Name,
-                    ( GetState ( tdsci, TDSCI_POINTER ) ? " * " : "" ), token, value, value ) ;
+                if ( size == 1 )
+                {
+                    Printf ( format, dataPtr, tdsci->Tdsci_Field_Type_Namespace->Name,
+                        ( GetState ( tdsci, TDSCI_POINTER ) ? " * " : "" ), token, value, value ) ;
+                }
+                else Printf ( format, dataPtr, tdsci->Tdsci_Field_Type_Namespace->Name,
+                    ( GetState ( tdsci, TDSCI_POINTER ) ? " * " : "" ), token, value ) ;
             }
-            else Printf ( format, dataPtr, tdsci->Tdsci_Field_Type_Namespace->Name,
-                ( GetState ( tdsci, TDSCI_POINTER ) ? " * " : "" ), token, value ) ;
-
             if ( ! ( t_type & ( POST_STRUCTURE_ID | PRE_STRUCTURE_ID ) ) ) tdsci->Tdsci_Field_Size = size ;
-            SetState ( tdsci, TDSCI_POINTER, false ) ;
         }
+        SetState ( tdsci, TDSCI_POINTER, false ) ;
     }
+}
+
+void
+TDSCI_PrintArrayField ( byte * dataPtr )
+{
+    TDSCI * tdsci = TDSCI_GetTop ( ) ;
+    byte *fieldName = tdsci->FieldName ;
+    char ads [64], adn [ 32 ] ;
+    int64 i ;
+    for ( ads[0] = 0, i = 0 ; i < tdsci->Tdsci_ArrayNumberOfDimensions ; i ++ )
+    {
+        snprintf ( adn, 32, "[%-ld]", tdsci->Tdsci_ArrayDimensions[i] ) ;
+        strncat ( ads, adn, 64 ) ;
+    }
+    int64 slfn = Strlen ( fieldName ), slad = Strlen ( ads ) ;
+    if ( slfn > 24 ) slfn = 24 ;
+    Printf ( "\n0x%016lx  %-16s%-3s  %-*s %s%*s = ", dataPtr, tdsci->Tdsci_Field_Type_Namespace->Name,
+        ( GetState ( tdsci, TDSCI_POINTER ) ? " * " : "" ), slfn, fieldName, ads, 23 - slfn - slad, "" ) ;
 }
 
 void

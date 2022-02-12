@@ -308,10 +308,11 @@
 #define POST_STRUCTURE_ID 2
 #define TD_TYPE_FIELD 4
 #define STRUCT_ID 8
+#define TD_ARRAY_FIELD 16
 #define _CONTEXT_TDSCI_STACK (_Context_->Compiler0->TDSCI_StructUnionStack)
 #define CONTEXT_TDSCI_STACK( cntx ) (((Context*) cntx) ? cntx->Compiler0->TDSCI_StructUnionStack : _CONTEXT_TDSCI_STACK)
 
-#define NUMBER_BASE_GET _Context_->System0->NumberBase
+#define NUMBER_BASE_GET() _Context_->System0->NumberBase
 #define NUMBER_BASE_SET( value ) _Context_->System0->NumberBase = ( value )
 
 // OVT_RecyclingAccounting flags

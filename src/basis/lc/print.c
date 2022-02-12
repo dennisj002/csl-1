@@ -17,7 +17,7 @@ void
 LO_PrintLiteralToString ( LambdaCalculus * lc, ListObject * l0 )
 {
     if ( Namespace_IsUsing ( ( byte* ) "BigNum" ) ) _BigNum_FPrint ( ( mpfr_t * ) l0->W_Value ) ;
-    else if ( ( l0->Lo_Integer < 0 ) || ( NUMBER_BASE_GET == 16 ) )
+    else if ( ( l0->Lo_Integer < 0 ) || ( NUMBER_BASE_GET() == 16 ) )
         LC_snprintf1 ( lc->buffer, " 0x%016lx", ( uint64 ) l0->Lo_UInteger ) ;
     else LC_snprintf1 ( lc->buffer, ( ( l0->Lo_Integer < 0 ) ? " 0x%016lx" : " %ld" ), l0->Lo_Integer ) ;
 }
@@ -111,7 +111,7 @@ _LO_PrintOneToString ( LambdaCalculus * lc, ListObject * l0, int64 in_a_LambdaFl
         }
         else if ( l0->W_ObjectAttributes & T_INT )
         {
-            if ( NUMBER_BASE_GET == 16 ) LC_snprintf1 ( lc->buffer, " 0x%016lx", ( uint64 ) l0->Lo_UInteger ) ;
+            if ( NUMBER_BASE_GET() == 16 ) LC_snprintf1 ( lc->buffer, " 0x%016lx", ( uint64 ) l0->Lo_UInteger ) ;
             else LC_snprintf1 ( lc->buffer, ( l0->Lo_Integer < 0 ) ? " 0x%016lx" : " %ld", l0->Lo_Integer ) ;
         }
         else if ( l0->W_ObjectAttributes & LITERAL ) LO_PrintLiteralToString ( lc, l0 ) ;

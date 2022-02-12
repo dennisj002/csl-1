@@ -181,7 +181,6 @@ typedef struct _WordData
         int64 * WD_ArrayDimensions ;
         byte * WD_OriginalCodeText ; // arrays don't have source code
     } ;
-    int64 WD_ArrayNumberOfDimensions ;
     Stack * WD_NamespaceStack ; // arrays don't have runtime debug code
     union
     {
@@ -192,6 +191,7 @@ typedef struct _WordData
     {
         ListObject * LambdaArgs ;
         int64 Index ; // used by Variable and LocalWord
+        int64 WD_ArrayNumberOfDimensions ;
         //byte * LogicTestCode ;
     } ;
     dllist * SourceCodeWordList ;

@@ -400,7 +400,6 @@ typedef struct _WordData
         int64 * WD_ArrayDimensions ;
         byte *WD_OriginalCodeText ; // arrays don't have source code
     } ;
-    int64 WD_ArrayNumberOfDimensions ;
     Stack * WD_NamespaceStack ; // arrays don't have runtime debug code
     union
     {
@@ -411,10 +410,9 @@ typedef struct _WordData
     {
         ListObject * LambdaArgs ;
         int64 Index ; // used by Variable and LocalWord
-        //byte * LogicTestCode ;
+        int64 WD_ArrayNumberOfDimensions ;
     } ;
     dllist * SourceCodeWordList ;
-    //byte * SourceCoding ; //
     int64 SourceCodeMemSpaceRandMarker ;
     dllist * DebugWordList ;
     int64 StartCharRlIndex ;
@@ -711,7 +709,7 @@ typedef struct
 typedef struct TypeDefStructCompileInfo
 {
     int64 State, Tdsci_Offset, Tdsci_StructureUnion_Size, Tdsci_Structure_Size, Tdsci_Union_Size, Tdsci_Field_Size ;
-    int64 LineNumber, Token_EndIndex, Token_StartIndex ;
+    int64 LineNumber, Token_EndIndex, Token_StartIndex, *Tdsci_ArrayDimensions, Tdsci_ArrayNumberOfDimensions ;
     Namespace *Tdsci_InNamespace, * Tdsci_StructureUnion_Namespace, * Tdsci_Field_Type_Namespace ;
     Word * Tdsci_Field_Object ;
     byte *NextChar, *DataPtr, * TdsciToken, *FieldName, *StructureUnionName ;

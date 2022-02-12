@@ -187,7 +187,7 @@ a7 ( int64 n, int64 m, int64 o, A3 * a )
 {
 
     a->ar[n + 1][m][o] = a->ar[n + 2][m][o] ;
-    __CSL_Dump ( ( int64 ) a, sizeof (*a ), 8 ) ;
+    Dump ( ( int64 ) a, sizeof (*a ), 8 ) ;
 }
 
 void

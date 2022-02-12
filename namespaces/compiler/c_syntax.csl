@@ -442,6 +442,7 @@ C_Syntax
 pwi ctti
 'ctti find fw store fw @ ctti 
 _find ( 'ctti ) ctti 
+'ctti find dup hex p 'C.Experimental.Word find wordStructPrint 
 //pause
 'C.Experimental notUsing
 #endif

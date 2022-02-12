@@ -223,9 +223,9 @@ Lexer_ParseObject ( Lexer * lexer, byte * token )
             }
             //else if ( tolower ( token [1] ) == 'o' ) goto doOctal ; // #o
         }
-        if ( NUMBER_BASE_GET == 10 ) _Lexer_ParseDecimal ( lexer, token ) ;
-        else if ( NUMBER_BASE_GET == 2 ) Lexer_ParseBinary ( lexer, token, 0 ) ;
-        else if ( NUMBER_BASE_GET == 16 ) _Lexer_ParseHex ( lexer, token ) ;
+        if ( NUMBER_BASE_GET () == 10 ) _Lexer_ParseDecimal ( lexer, token ) ;
+        else if ( NUMBER_BASE_GET () == 2 ) Lexer_ParseBinary ( lexer, token, 0 ) ;
+        else if ( NUMBER_BASE_GET() == 16 ) _Lexer_ParseHex ( lexer, token ) ;
     }
 }
 

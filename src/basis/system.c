@@ -155,7 +155,7 @@ _CSL_GetSystemState_String1 ( byte *buf )
     else strcat ( ( char* ) buf, "off. " ) ;
     sprintf ( ( char* ) &buf[Strlen ( ( char* ) buf )], "Verbosity = %ld. ", _O_->Verbosity ) ;
     sprintf ( ( char* ) &buf[Strlen ( ( char* ) buf )], "Console = %ld, ", _O_->Console ) ;
-    sprintf ( ( char* ) &buf[Strlen ( ( char* ) buf )], "NumberBase = %ld.", NUMBER_BASE_GET ) ;
+    sprintf ( ( char* ) &buf[Strlen ( ( char* ) buf )], "NumberBase = %ld.", NUMBER_BASE_GET() ) ;
     return buf ;
 }
 
@@ -217,15 +217,15 @@ _CSL_SystemState_Print ( int64 pflag )
 }
 
 void
-__CSL_Dump ( byte * address, int64 number, int64 dumpMod )
+Dump ( byte * address, int64 number, int64 dumpMod )
 {
     if ( address && number )
     {
-        byte * nformat ;
+        //byte * nformat ;
+        //if ( ( NUMBER_BASE_GET () == 16 ) ) nformat = ( byte* ) "\nDump : Address = " UINT_FRMT " : Number = " UINT_FRMT " :: (little endian dump)" ;
+        //else nformat = ( byte* ) "\nDump : Address = " UINT_FRMT " : Number = " INT_FRMT " :: (little endian dump)" ;
         int64 i, n ;
-        if ( NUMBER_BASE_GET == 16 ) nformat = ( byte* ) "\nDump : Address = " UINT_FRMT " : Number = " UINT_FRMT " :: (little endian dump)" ;
-        else nformat = ( byte* ) "\nDump : Address = " UINT_FRMT " : Number = " INT_FRMT " :: (little endian dump)" ;
-        Printf ( nformat, ( int64 ) address, number ) ;
+        Printf ( "\nDump : Address = " UINT_FRMT " : Number = " INT_FRMT " :: (little endian dump)", ( int64 ) address, number ) ;
         for ( i = 0 ; i < number ; )
         {
             Printf ( "\n" UINT_FRMT " : ", address + i ) ;
@@ -357,7 +357,7 @@ _CSL_Dump ( int64 dumpMod )
 {
     int64 number = DataStack_Pop ( ) ;
     byte * address = ( byte* ) DataStack_Pop ( ) ;
-    __CSL_Dump ( address, number, dumpMod ) ;
+    Dump ( address, number, dumpMod ) ;
 }
 
 Boolean

@@ -625,10 +625,10 @@ Debugger_Dump ( Debugger * debugger )
 {
     if ( ! debugger->w_Word )
     {
-        if ( debugger->DebugAddress ) __CSL_Dump ( ( byte * ) debugger->DebugAddress, ( uint64 ) ( Here - ( int64 ) debugger->DebugAddress ), 8 ) ;
+        if ( debugger->DebugAddress ) Dump ( ( byte * ) debugger->DebugAddress, ( uint64 ) ( Here - ( int64 ) debugger->DebugAddress ), 8 ) ;
     }
 
-    else __CSL_Dump ( ( byte * ) debugger->w_Word->CodeStart, ( uint64 ) debugger->w_Word->S_CodeSize, 8 ) ;
+    else Dump ( ( byte * ) debugger->w_Word->CodeStart, ( uint64 ) debugger->w_Word->S_CodeSize, 8 ) ;
     SetState ( debugger, DBG_INFO, true ) ;
 }
 
