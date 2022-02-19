@@ -1,6 +1,6 @@
 
 #include "../include/csl.h"
-#define VERSION ((byte*) "0.920.430" ) 
+#define VERSION ((byte*) "0.920.460" ) 
 
 // inspired by :: Foundations of Mathematical Logic [Foml] by Haskell Curry
 // CT/Oop (Category Theory, Object Oriented Programming, Type Theory), 
@@ -26,29 +26,6 @@ void
 openvmtil ( int64 argc, char * argv [ ] )
 {
     OpenVmTil_Run ( argc, argv ) ;
-}
-
-void
-OpenVmTil_Delete ( OpenVmTil * ovt )
-{
-    if ( ovt )
-    {
-        if ( ovt->Verbosity > 2 ) Printf ( "\nAll allocated, non-static memory is being freed.\nRestart : verbosity = %d.", ovt->Verbosity ) ;
-        FreeChunkList ( _OMS_->OvtMemChunkList ) ;
-    }
-    _O_ = 0 ;
-}
-
-OpenVmTil *
-_OpenVmTil_Allocate ( OpenVmTil * ovt )
-{
-    if ( ! _OSMS_ ) OVT_Static_New ( ) ;
-    OpenVmTil_Delete ( ovt ) ; // first delete a previous ovt - it could have been corrupted by a software error
-    ovt = _O_ = ( OpenVmTil* ) MemChunk_AllocateAdd ( sizeof ( OpenVmTil ), OPENVMTIL ) ; //OVT_STATIC
-    ovt->OpenVmTilSpace = MemorySpace_NBA_OvtNew ( ( byte* ) "OpenVmTilSpace", (ovt->OpenVmTilSize ? ovt->OpenVmTilSize : ( 6 * K )), OPENVMTIL ) ;
-    ovt->NBAs = _dllist_New ( OPENVMTIL ) ;
-    ovt->MemorySpaceList = _dllist_New ( OPENVMTIL ) ;
-    return ovt ;
 }
 
 void

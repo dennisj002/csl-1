@@ -5,7 +5,8 @@ HistoryStringNode *
 HistoryStringNode_New ( byte * hstring )
 {
     HistoryStringNode * hsn = ( HistoryStringNode * ) MemChunk_AllocateAdd ( sizeof ( HistoryStringNode ), HISTORY ) ; //MemChunk_DataAllocate ( int64 size, int64 allocType )
-    _Symbol_Init_AllocName ( ( Symbol* ) hsn, hstring, STRING_MEMORY ) ; // use Name for history string
+    byte* sname = String_New ( hstring, HISTORY ) ;
+    hsn->mc_Name = sname ;
     return hsn ;
 }
 
@@ -18,7 +19,7 @@ HistorySymbolList_Find ( byte * hstring )
     {
         nextNode = dlnode_Next ( node ) ;
         hsn = ( HistoryStringNode* ) node ;
-        if ( ( hsn->S_Name ) && ( String_Equal ( ( char* ) hsn->S_Name, ( char* ) hstring ) ) ) return hsn ;
+        if ( ( hsn->mc_Name ) && ( String_Equal ( ( char* ) hsn->mc_Name, ( char* ) hstring ) ) ) return hsn ;
     }
     return 0 ;
 }
@@ -27,10 +28,10 @@ void
 ReadLine_ShowHistoryNode ( ReadLiner * rl )
 {
     rl->EscapeModeFlag = 0 ;
-    if ( rl->HistoryNode && rl->HistoryNode->S_Name )
+    if ( rl->HistoryNode && rl->HistoryNode->mc_Name )
     {
         byte * dst = Buffer_Data ( _CSL_->ScratchB1 ) ;
-        dst = _String_ConvertStringToBackSlash ( dst, rl->HistoryNode->S_Name, - 1 ) ;
+        dst = _String_ConvertStringToBackSlash ( dst, rl->HistoryNode->mc_Name, - 1 ) ;
         _ReadLine_PrintfClearTerminalLine ( ) ;
         __ReadLine_DoStringInput ( rl, String_FilterMultipleSpaces ( dst, TEMPORARY ), rl->AltPrompt ) ;
         ReadLine_SetCursorPosition ( rl, rl->EndPosition ) ;
@@ -81,10 +82,11 @@ OpenVmTil_AddStringToHistoryOff ( )
 }
 
 #if 0
+
 void
 History_Init ( )
 {
-//    _OS_->HistorySpace_MemChunkStringList = _dllist_New ( OVT_STATIC ) ;
+    //    _OS_->HistorySpace_MemChunkStringList = _dllist_New ( OVT_STATIC ) ;
     &_OSMS_->HistorySpace_MemChunkStringList = _dllist_New ( HISTORY ) ;
 }
 #endif

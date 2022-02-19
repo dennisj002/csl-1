@@ -220,7 +220,7 @@ void
 _NamedByteArray_Init ( NamedByteArray * nba, byte * name, int64 size, int64 atype )
 {
     _Symbol_NameInit ( ( Symbol* ) & nba->NBA_Symbol, name ) ;
-    nba->NBA_MemChunk.Name = name ;
+    nba->NBA_MemChunk.mc_Name = name ;
     nba->NBA_AAttribute = atype ;
     dllist_Init ( &nba->NBA_BaList, &nba->NBA_ML_HeadNode, &nba->NBA_ML_TailNode ) ;
     nba->NBA_DataSize = nba->OriginalSize = size ;
@@ -229,7 +229,7 @@ _NamedByteArray_Init ( NamedByteArray * nba, byte * name, int64 size, int64 atyp
     nba->LargestRemaining = size ; 
     nba->TotalAllocSize = sizeof ( NamedByteArray ) ;
     Set_NbaSymbolNode_To_NBA ( nba ) ;
-    nba->NBA_Symbol.S_unmap = nba->NBA_MemChunk.S_unmap ;
+    nba->NBA_MemChunk.mc_unmap = nba->NBA_MemChunk.mc_unmap ;
     nba->NumberOfByteArrays = 0 ;
     nba->Allocations = 1 ;
     _NamedByteArray_AddNewByteArray ( nba, size ) ;

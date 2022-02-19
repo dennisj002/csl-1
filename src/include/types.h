@@ -183,18 +183,16 @@ typedef int64( *MapFunction3 ) ( dlnode *, int64, int64, int64 ) ;
 typedef void ( *MapFunction4 ) ( dlnode *, int64, int64, int64, int64 ) ;
 typedef void ( *MapFunction5 ) ( dlnode *, int64, int64, int64, int64, int64 ) ;
 typedef Boolean( *BoolMapFunction_1 ) ( dlnode * ) ;
-#if 1
 typedef struct //_MemChunk
 {
-    DLNode S_Node ;
-    int64 Type ;
-    byte * S_unmap  ;
-    int64 S_ChunkSize  ; // S_ChunkSize is the total size of the chunk including any prepended accounting structure in that total
-    int64 S_WAllocType  ;
-    byte * S_Name ;
-    byte * S_pb_Data2 ;
-} MemChunk ;
-#endif
+    DLNode mc_Node ;
+    int64 mc_Size, mc_Type ;
+    byte * mc_unmap  ;
+    int64 mc_ChunkSize  ; // S_ChunkSize is the total size of the chunk including any prepended accounting structure in that total
+    int64 mc_AllocType  ;
+    byte * mc_Name ;
+    byte * mc_Data ;
+} MemChunk, HistoryStringNode ;
 typedef struct _Identifier // _Symbol
 {
     DLNode S_Node ;
@@ -233,7 +231,7 @@ typedef struct _Identifier // _Symbol
         byte * TextMacroValue ;
     } ;
     struct _WordData * W_WordData ;
-} Identifier, ID, Word, Namespace, Vocabulary, Class, DynamicObject, DObject, ListObject, Symbol, HistoryStringNode, Buffer, CaseNode ;
+} Identifier, ID, Word, Namespace, Vocabulary, Class, DynamicObject, DObject, ListObject, Symbol, Buffer, CaseNode ;
 #define S_Car S_Node.n_DLNode.n_After
 #define S_Cdr S_Node.n_DLNode.n_Before
 #define S_After S_Cdr
@@ -481,9 +479,9 @@ typedef struct
     byte * bp_Last ;
     byte * BA_Data ;
 } ByteArray ;
-#define BA_AllocSize BA_MemChunk.S_Size
-#define BA_CAttribute BA_MemChunk.S_MorphismAttributes
-#define BA_AAttribute BA_MemChunk.S_WAllocType
+#define BA_AllocSize BA_MemChunk.mc_Size
+//#define BA_CAttribute BA_MemChunk.S_MorphismAttributes
+#define BA_AAttribute BA_MemChunk.mc_AllocType
 typedef struct NamedByteArray
 {
     MemChunk NBA_MemChunk ;
