@@ -4,8 +4,8 @@
 HistoryStringNode *
 HistoryStringNode_New ( byte * hstring )
 {
-    HistoryStringNode * hsn = ( HistoryStringNode * ) Mem_Allocate ( sizeof ( HistoryStringNode ), HISTORY ) ;
-    _Symbol_Init_AllocName ( ( Symbol* ) hsn, hstring, HISTORY ) ; // use Name for history string
+    HistoryStringNode * hsn = ( HistoryStringNode * ) MemChunk_AllocateAdd ( sizeof ( HistoryStringNode ), HISTORY ) ; //MemChunk_DataAllocate ( int64 size, int64 allocType )
+    _Symbol_Init_AllocName ( ( Symbol* ) hsn, hstring, STRING_MEMORY ) ; // use Name for history string
     return hsn ;
 }
 
@@ -14,7 +14,7 @@ HistorySymbolList_Find ( byte * hstring )
 {
     HistoryStringNode * hsn = 0 ;
     dlnode * node, * nextNode ;
-    for ( node = dllist_First ( ( dllist* ) _OS_->HistorySpace_MemChunkStringList ) ; node ; node = nextNode )
+    for ( node = dllist_First ( _OSMS_->HistorySpace_MemChunkStringList ) ; node ; node = nextNode )
     {
         nextNode = dlnode_Next ( node ) ;
         hsn = ( HistoryStringNode* ) node ;
@@ -53,11 +53,11 @@ _OpenVmTil_AddStringToHistoryList ( byte * istring )
         nstring = _String_ConvertStringToBackSlash ( nstring, istring, - 1 ) ;
 
         hsn = HistorySymbolList_Find ( nstring ) ;
-        if ( ! hsn ) hsn = HistoryStringNode_New ( nstring ) ;
-        else dlnode_Remove ( ( dlnode* ) hsn ) ; // make it last with dllist_AddNodeToTail
-        dllist_AddNodeToTail ( _OS_->HistorySpace_MemChunkStringList, ( dlnode* ) hsn ) ; //
-        d0 ( int64 ll = List_Length ( _OS_->HistorySpace_MemChunkStringList ) ) ;
-        dllist_SetCurrentNode_After ( _OS_->HistorySpace_MemChunkStringList ) ; // ! properly set Object.dln_Node
+        if ( hsn ) dlnode_Remove ( ( dlnode* ) hsn ) ; // make it last with dllist_AddNodeToTail
+        else hsn = HistoryStringNode_New ( nstring ) ;
+        dllist_AddNodeToTail ( _OSMS_->HistorySpace_MemChunkStringList, ( dlnode* ) hsn ) ; //
+        d0 ( int64 ll = List_Length ( _OSMS_->HistorySpace_MemChunkStringList ) ) ;
+        dllist_SetCurrentNode_After ( _OSMS_->HistorySpace_MemChunkStringList ) ; // ! properly set Object.dln_Node
     }
 }
 
@@ -85,14 +85,14 @@ void
 History_Init ( )
 {
 //    _OS_->HistorySpace_MemChunkStringList = _dllist_New ( OVT_STATIC ) ;
-    _OS_->HistorySpace_MemChunkStringList = _dllist_New ( HISTORY ) ;
+    &_OSMS_->HistorySpace_MemChunkStringList = _dllist_New ( HISTORY ) ;
 }
 #endif
 
 void
 History_Delete ( )
 {
-    FreeChunkList ( _OS_->HistorySpace_MemChunkStringList ) ;
-    _dllist_Init ( _OS_->HistorySpace_MemChunkStringList ) ;
-    _OS_->HistoryAllocation = 0 ;
+    FreeChunkList ( _OSMS_->HistorySpace_MemChunkStringList ) ;
+    _dllist_Init ( _OSMS_->HistorySpace_MemChunkStringList ) ;
+    _OSMS_->HistoryAllocated = 0 ;
 }

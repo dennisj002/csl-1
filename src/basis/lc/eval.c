@@ -124,10 +124,6 @@ _LC_EvalList ( )
         for ( lnode = lc->Largs0 ; lnode ; lnode = lnext )
         {
             lnext = _LO_Next ( lnode ) ;
-#if 0            
-            if (lnode == lc->Lfunction0 ) 
-                siglongjmp ( lc->LC_JmpBuf, 1 ) ;
-#endif            
             le = LC_Eval ( lnode, locals, lc->ApplyFlag ) ; // lc->Locals could be changed by eval
             LO_AddToTail ( l1, LO_CopyOne ( le ) ) ;
             //LO_AddToTail ( l1, le ) ;

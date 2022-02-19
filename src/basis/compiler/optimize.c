@@ -349,7 +349,7 @@ Compiler_Optimizer_WordArg2Op_Or_xBetweenArg1AndArg2 ( Compiler * compiler )
                     optInfo->rtrn = 1 ;
                 }
 #endif            
-            else Word_Check_ReSet_To_Here_StackPushRegisterCode ( optInfo->wordArg2, 1 ) ; // the rest of the code will be handled in Compile_Optimize_Equal
+else Word_Check_ReSet_To_Here_StackPushRegisterCode ( optInfo->wordArg2, 1 ) ; // the rest of the code will be handled in Compile_Optimize_Equal
         }
     }
     else if ( optInfo->NumberOfArgs )
@@ -776,7 +776,7 @@ Compile_X_Equal ( Compiler * compiler, int64 op, int lvalueSize )
                 if ( word->StackPushRegisterCode )
                 {
                     byte * src = word->StackPushRegisterCode + STACK_PUSH_REGISTER_CODE_SIZE ;
-                    BI_Block_Copy (0, word->StackPushRegisterCode, src, Here - src ) ;
+                    BI_Block_Copy ( 0, word->StackPushRegisterCode, src, Here - src ) ;
                 }
                 compiler->OptInfo->wordArg0_ForOpEqual = 0 ;
                 return ;
@@ -799,6 +799,7 @@ PeepHole_Optimize_ForStackPopToReg ( )
         byte add_r14_0x8__mov_r14_rax__mov_rax_r14__sub_r14_0x8 [ ] = { 0x49, 0x83, 0xc6, 0x08, 0x49, 0x89, 0x06, 0x49, 0x8b, 0x06, 0x49, 0x83, 0xee, 0x08 } ;
         if ( ! memcmp ( add_r14_0x8__mov_r14_rax__mov_rax_r14__sub_r14_0x8, here - 14, 14 ) )
         {
+            CSL_AdjustDbgSourceCodeAddress ( Here, Here - 14 ) ;
             _ByteArray_UnAppendSpace ( _O_CodeByteArray, 14 ) ;
         }
     }
@@ -817,21 +818,31 @@ PeepHole_Optimize ( )
         //byte mov_eax_tos_sub_esi_04_test_eax_eax [ ] = { 0x89, 0x06, 0x83, 0xee, 0x04, 0x85, 0xc0 } ;
         byte mov_r14_rax__mov_rax_r14 [] = { 0x49, 0x89, 0x06, 0x49, 0x8b, 0x06 } ;
         byte add_rax_0x0 [] = { 0x48, 0x81, 0xc0, 0x00, 0x00, 0x00, 0x00 } ;
+        byte test_rax_rax_test_rax_rax [] = { 0x48, 0x85, 0xc0, 0x48, 0x85, 0xc0 } ;
         if ( ! memcmp ( sub_r14_0x8__add_r14_0x8, here - 8, 8 ) )
         {
+            CSL_AdjustDbgSourceCodeAddress ( Here, Here - 8 ) ;
             _ByteArray_UnAppendSpace ( _O_CodeByteArray, 8 ) ;
         }
         else if ( ! memcmp ( add_r14_0x8__mov_r14_rax__mov_rax_r14__sub_r14_0x8, here - 14, 14 ) )
         {
+            CSL_AdjustDbgSourceCodeAddress ( Here, Here - 14 ) ;
             _ByteArray_UnAppendSpace ( _O_CodeByteArray, 14 ) ;
         }
         else if ( ! memcmp ( mov_r14_rax__mov_rax_r14, here - 6, 6 ) )
         {
+            CSL_AdjustDbgSourceCodeAddress ( Here, Here - 6 ) ;
             _ByteArray_UnAppendSpace ( _O_CodeByteArray, 6 ) ;
         }
         else if ( ! memcmp ( add_rax_0x0, here - 7, 7 ) )
         {
+            CSL_AdjustDbgSourceCodeAddress ( Here, Here - 7 ) ;
             _ByteArray_UnAppendSpace ( _O_CodeByteArray, 7 ) ;
+        }
+        else if ( ! memcmp ( test_rax_rax_test_rax_rax, here - 6, 6 ) )
+        {
+            CSL_AdjustDbgSourceCodeAddress ( Here, Here - 6 ) ;
+            _ByteArray_UnAppendSpace ( _O_CodeByteArray, 6 ) ;
         }
 #if 0        
         else if ( ! memcmp ( add_r14_0x8__mov_r14_rdi__mov_rax_r14__sub_r14_0x8, here - 14, 14 ) )

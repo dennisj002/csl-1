@@ -104,7 +104,7 @@ List_Show_N_Word_Names ( dllist * list, uint64 n, int64 showBeforeAfterFlag, int
 void
 List_DupList ( )
 {
-    LC_Init_Runtime ( ) ;
+    //LC_Init_Runtime ( ) ;
     ListObject * l0 = ( ListObject * ) TOS, *l1 ;
     l1 = LO_CopyOne ( l0 ) ;
     DataStack_Push ( ( int64 ) l1 ) ;

@@ -702,7 +702,7 @@ TDSCI_PrintArrayField ( byte * dataPtr )
     for ( ads[0] = 0, i = 0 ; i < tdsci->Tdsci_ArrayNumberOfDimensions ; i ++ )
     {
         snprintf ( adn, 32, "[%-ld]", tdsci->Tdsci_ArrayDimensions[i] ) ;
-        strncat ( ads, adn, 64 ) ;
+        strncat ( ads, adn, 63 ) ;
     }
     int64 slfn = Strlen ( fieldName ), slad = Strlen ( ads ) ;
     if ( slfn > 24 ) slfn = 24 ;

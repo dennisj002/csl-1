@@ -354,6 +354,7 @@ _LC_Apply_Arg ( LambdaCalculus * lc, ListObject ** pl1, int64 * i )
         Set_CompileMode ( false ) ;
         l2 = LC_Eval ( l1, 0, 1 ) ;
         _Debugger_->SpecialPreHere = Here ;
+        Compiler_Word_SCHCPUSCA ( l2, 0 ) ; 
         if ( ! l2 || ( l2->W_LispAttributes & T_NIL ) ) Compile_MoveImm_To_Reg ( RegParameterOrder (( *i ) ++ ), DataStack_Pop ( ), CELL_SIZE ) ;
         else Compile_MoveImm_To_Reg ( RegParameterOrder (( *i ) ++ ), ( int64 ) * l2->Lo_PtrToValue, CELL_SIZE ) ;
         DEBUG_SHOW ( l2, 1, 0 ) ;

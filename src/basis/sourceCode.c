@@ -115,7 +115,7 @@ DWL_Find (dllist * list, Word * iword, byte * address, byte* name, int64 takeFir
                 fDiff = abs ( scwi - lastScwi ) ;
                 aFoundWord->W_SC_Index = scwi ; // not sure exactly why this is necessary but it is important for now??
                 if ( ( _O_->Verbosity > 2 ) ) 
-                    DWL_ShowWord ( anode, i, 0, ( int64 ) "FOUND", 0 ) ;
+                    DWL_ShowWord ( anode, i, 0, ( int64 ) "FOUND ", 0 ) ;
                 if ( ( aFoundWord->W_ObjectAttributes & LITERAL ) && ( aFoundWord->Coding[1] == 0xb9 ) )
                 {
                     foundWord = aFoundWord ;

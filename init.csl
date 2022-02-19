@@ -309,10 +309,10 @@ dscOn
 : debugTest 1 2 + p debugTest1 ;
 
 : _assert1dbg ( n m str ) { n @ m @ != } { str @ ? str @ ps : drop "error" ps _info stack _pause } { debugTest } ifElse ; 
-: _assert1 ( n m str ) { n @ m @ != } { nl location hex n @ p "!=" ps m @ p "<:" ps "Error!" adps _info _pause } { str @ ps " : ok\n" ps nl } ifElse ; debugWord
+: _assert1 ( n m str ) { n @ m @ != } { nl location hex n @ p "!=" ps m @ p "<:" ps "Stack Inconsistency?!" adps _info _pause } { str @ ps " : ok\n" ps nl } ifElse ; debugWord
 : ctloc do> locationPush does> locationPrint <does ; immediate // compile time location
-: _assert0 ( n m ) { n @ m @ != } { nl location nl hex n @ p "!=" ps m @ p "<:" ps "Error!" adps _info _pause } if2 ; //{ str @ ps " : ok\n" ps nl } ifElse ; // no "ok" with this word
-: _assert ( n m ) nl  nl "_assert ::" ps { n @ m @ != } { n @ p "!=" ps m @ p "<:" ps "Error!" adps _info _pause } { " ok\n" ps nl } ifElse ; 
+: _assert0 ( n m ) { n @ m @ != } { nl location nl hex n @ p "!=" ps m @ p "<:" ps "Stack Inconsistency?!" adps _info _pause } if2 ; //{ str @ ps " : ok\n" ps nl } ifElse ; // no "ok" with this word
+: _assert ( n m ) nl  nl "_assert ::" ps { n @ m @ != } { n @ p "!=" ps m @ p "<:" ps "Stack Inconsistency?!" adps _info _pause } { " ok\n" ps nl } ifElse ; 
 : assert1s ( s1 s2 str ) { s1 @ s2 @ strcmp } { nl str @ ps "error" ps _info _pause } if ;
 : assert0 ( n m ) { n @ m @ != } { nl "error" ps _info _pause } if ; 
 "assert" ' _assert1 find alias debugWord
@@ -489,7 +489,7 @@ d: : hi0 ( n m ) n @ m @ - dup <dbg> p return tos ; pwi hi0 13 2 d: hi0 11 _asse
 : hi ( n m | x ) x n @ m @ - = x @ p return ( x @ ) ; pwi hi 13 2 hi 11 _assert
 cOn
 jcc8_On
-int fac5 ( REG n | REG facc )  {  facc = 1 ; while ( n > 1 )  { facc = facc * (n --) ; } return facc ; } 
+d: int fac5 ( REG n | REG facc )  {  facc = 1 ; while ( n > 1 )  { facc = facc * (n --) ; } return facc ; } 
 fac5 ( 7 ) ; p
 jcc8_Off
 pwi fac5    

@@ -180,14 +180,6 @@ dllist_Init ( dllist * list, dlnode * ahead, dlnode * atail )
     _dllist_Init ( list ) ;
 }
 
-void
-OS_List_Init ( OS_List * osl )
-{
-    osl->osl_List.l_List.n_Head = & osl->n_Head ;
-    osl->osl_List.l_List.n_Tail = & osl->n_Tail ;
-    dllist_Init ( ( dllist* ) & osl->osl_List, &osl->n_Head, &osl->n_Tail ) ;
-}
-
 dllist *
 _dllist_New ( uint64 allocType )
 {
@@ -312,7 +304,7 @@ _dllist_First ( dllist * list )
 {
     dlnode * head = _dllist_Head ( list ), * headNext ;
     if ( head && ( headNext = _dlnode_Next ( head ) ) )
-        //if ( ! Is_TheTailNode ( headNext ) ) return headNext ;
+        if ( ! Is_TheTailNode ( headNext ) ) return headNext ;
         if ( headNext->n_After ) return headNext ;
     return 0 ;
 }
@@ -322,7 +314,7 @@ _dllist_Last ( dllist * list )
 {
     dlnode *tail = _dllist_Tail ( list ), * tailPrevious ;
     if ( tail && ( tailPrevious = _dlnode_Previous ( tail ) ) )
-        //if ( ! Is_TheHeadNode ( tailPrevious ) ) return tailPrevious ;
+        if ( ! Is_TheHeadNode ( tailPrevious ) ) return tailPrevious ;
         if ( tailPrevious->n_Before ) return tailPrevious ;
     return 0 ;
 }

@@ -149,7 +149,7 @@ _Debugger_ShowInfo ( Debugger * debugger, byte * prompt, int64 signal, int64 for
 
         DebugColors ;
 
-        if ( ( location == debugger->Filename ) && ( GetState ( debugger, DBG_FILENAME_LOCATION_SHOWN ) ) ) 
+        if ( ( location == debugger->Filename ) && ( GetState ( debugger, DBG_FILENAME_LOCATION_SHOWN ) ) )
             location = ( byte * ) "..." ;
         SetState ( debugger, DBG_FILENAME_LOCATION_SHOWN, true ) ;
 
@@ -164,7 +164,7 @@ _Debugger_ShowInfo ( Debugger * debugger, byte * prompt, int64 signal, int64 for
                 cc_line ) ;
         }
         DefaultColors ;
-//        if ( ! String_Equal ( "...", location ) ) debugger->Filename = location ;
+        //        if ( ! String_Equal ( "...", location ) ) debugger->Filename = location ;
         debugger->LastShowInfoWord = word ;
     }
     else SetState_TrueFalse ( _Debugger_, DBG_AUTO_MODE_ONCE, true ) ;
@@ -203,7 +203,7 @@ Debugger_ShowInfo ( Debugger * debugger, byte * prompt, int64 signal )
 }
 
 void
-CSL_ShowInfo (Debugger * debugger, Word * word, byte * prompt, int64 signal )
+CSL_ShowInfo ( Debugger * debugger, Word * word, byte * prompt, int64 signal )
 {
     if ( word && ( word->W_AliasOf ) )
     {
@@ -564,8 +564,8 @@ CSL_PrepareDbgShowInfoString ( Word * word, byte* token, int64 twAlreayUsed )
         byte * il = Buffer_Data_Cleared ( _CSL_->StringInsertB6 ) ; //nb! dont tamper with the input line. eg. removing its newline will affect other code which depends on newline
         strncpy ( il, rl->InputLineString, BUFFER_IX_SIZE ) ;
         String_RemoveEndWhitespace ( ( byte* ) il ) ;
-        int64 fel, tvw, tw = GetTerminalWidth ( ) ;
-        fel = 32 - 1 ; //fe : formatingEstimate length : 2 formats with 8/12 chars on each sude - 32/48 :: 1 : a litte leave way
+        int64 fel, tvw, tw0, tw = ( ( tw0 = GetTerminalWidth ( ) ) > 0 ) ? tw0 : 200 ; // GetTerminalWidth ( )  is not very accurate, sometimes even returning 0
+        fel = 31 ; //fe : formating estimated length : 2 formats with 8/12 chars on each sude - 32/48 ::  -1 : a litte leave way
         //tw = Debugger_TerminalLineWidth ( debugger ) ; // 139 ; //139 : nice width :: Debugger_TerminalLineWidth ( debugger ) ; 
         tvw = tw - ( ( twAlreayUsed > fel ) ? ( twAlreayUsed - fel ) : fel ) ; //subtract the formatting chars which don't add to visible length
         cc_line = DBG_PrepareShowInfoString ( 0, word, token, il, tvw, word ? word->W_RL_Index : _Lexer_->TokenStart_ReadLineIndex, 0 ) ; //tvw, tvw/2 ) ;// sc : source code ; scwi : source code word index

@@ -670,7 +670,7 @@ Debugger_Copy ( Debugger * debugger0, uint64 type )
 void
 Debugger_Delete ( Debugger * debugger )
 {
-    Mem_FreeItem ( _OS_->OvtMemChunkList, ( byte* ) debugger ) ;
+    Mem_FreeItem ( _OMS_->OvtMemChunkList, ( byte* ) debugger ) ;
 }
 
 Debugger *

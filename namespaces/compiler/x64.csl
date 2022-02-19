@@ -120,6 +120,7 @@ dscOn
 '_Compile_Int64 'compileInt64 fa
 //logOn
 c_syntaxOn
+//vb3 () ;
 
 int64 
 abs ( int64 n ) 
@@ -296,7 +297,6 @@ void
 Compile_CalculateWrite_Instruction_X64 ( uint8 opCode0, uint8 opCode1, uint8 mod, uint8 reg, uint8 rm, uint16 controlFlags, uint8 sib, uint64 disp, uint8 dispSize, uint64 imm, uint8 immSize )
 {
     uint8 rex = Calculate_Rex ( reg, rm, ( immSize == 8 ) || ( controlFlags Bits.& REX_W ), ( controlFlags Bits.& REX_B ) ) ;
-    //uint8 rex = Calculate_Rex (reg, rm, ( immSize == 8 ), ( controlFlags Bits.& REX_B ) ) ;
     uint8 modRm = CalculateModRmByte ( mod, reg, rm, sib, disp ) ;
     _Compile_Write_Instruction_X64 ( rex, opCode0, opCode1, modRm, controlFlags, sib, disp, dispSize, imm, immSize ) ;
 } prefix
@@ -431,7 +431,7 @@ Compile_MoveImm ( uint8 mod, uint8 rm, int64 disp, int64 imm, uint8 immSize )
     }
     else Compile_Move ( 0, mod, 0, rm, 0, 0, 0, 0, imm, immSize ) ; // nb. reg == 0 in a move immediate
 } prefix
-//pwi Compile_MoveImm pause
+pwi Compile_MoveImm //pause
 
 void
 Compile_MoveImm_To_Reg ( uint8 rm, int64 imm, uint8 immSize )
@@ -727,7 +727,8 @@ void _Compile_Move_DataStackN_ToReg ( reg, n )
     Compile_Move ( REG, MEM, reg, DSP, 8, 0, n * CELL, 0, 0, 0 ) ; 
 } prefix 
 pwi _Compile_Move_DataStackN_ToReg
-
+//pause
+//vb1
 c_syntaxOff
 infixOn
 C X64
@@ -872,5 +873,5 @@ cOff
 //pause
 2 + 7 assertStkChk // stack checking
 //logOff
-//stack pause
+//stack 
     

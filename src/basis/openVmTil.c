@@ -1,6 +1,6 @@
 
 #include "../include/csl.h"
-#define VERSION ((byte*) "0.920.110" ) 
+#define VERSION ((byte*) "0.920.430" ) 
 
 // inspired by :: Foundations of Mathematical Logic [Foml] by Haskell Curry
 // CT/Oop (Category Theory, Object Oriented Programming, Type Theory), 
@@ -8,7 +8,7 @@
 // C/C++/C#, Lisp, RPN/Lag - Reverse Polish Notation - (Left Associative Grammar)10
 // Automata Theory : State Machines, Push Down Automata (PDA), Turing Machines :: 
 // Also inspired by : Laws of Form, by G.S. Brown, Kurt Godel, etc.
-// csl : context sensitive language
+// csl : context sensitive language; C shell (extension) language
 // cfr : C, Forth, reason
 // cflr : C, Forth, Lisp, reason
 // til : a toolkit for implementing languages (maybe even a compiler compiler) based on these ideas,
@@ -28,40 +28,34 @@ openvmtil ( int64 argc, char * argv [ ] )
     OpenVmTil_Run ( argc, argv ) ;
 }
 
+void
+OpenVmTil_Delete ( OpenVmTil * ovt )
+{
+    if ( ovt )
+    {
+        if ( ovt->Verbosity > 2 ) Printf ( "\nAll allocated, non-static memory is being freed.\nRestart : verbosity = %d.", ovt->Verbosity ) ;
+        FreeChunkList ( _OMS_->OvtMemChunkList ) ;
+    }
+    _O_ = 0 ;
+}
+
 OpenVmTil *
 _OpenVmTil_Allocate ( OpenVmTil * ovt )
 {
+    if ( ! _OSMS_ ) OVT_Static_New ( ) ;
     OpenVmTil_Delete ( ovt ) ; // first delete a previous ovt - it could have been corrupted by a software error
-    ovt = _O_ = ( OpenVmTil* ) Mem_ChunkAllocate ( sizeof ( OpenVmTil ), OPENVMTIL ) ; //Mem_Allocate ( sizeof ( OpenVmTil ), STATIC ) ; 
-    ovt->OpenVmTilSpace = MemorySpace_NBA_OvtNew ( ( byte* ) "OpenVmTilSpace", ovt->OpenVmTilSize, OPENVMTIL ) ;
+    ovt = _O_ = ( OpenVmTil* ) MemChunk_AllocateAdd ( sizeof ( OpenVmTil ), OPENVMTIL ) ; //OVT_STATIC
+    ovt->OpenVmTilSpace = MemorySpace_NBA_OvtNew ( ( byte* ) "OpenVmTilSpace", (ovt->OpenVmTilSize ? ovt->OpenVmTilSize : ( 6 * K )), OPENVMTIL ) ;
     ovt->NBAs = _dllist_New ( OPENVMTIL ) ;
     ovt->MemorySpaceList = _dllist_New ( OPENVMTIL ) ;
     return ovt ;
 }
 
 void
-_OpenVmTil_Delete ( OpenVmTil * ovt )
-{
-    if ( ovt )
-    {
-        if ( ovt->Verbosity > 2 ) Printf ( "\nAll allocated, non-static memory is being freed.\nRestart : verbosity = %d.", ovt->Verbosity ) ;
-        FreeChunkList ( _OS_->OvtMemChunkList ) ;
-    }
-    _O_ = 0 ;
-}
-
-void
-OpenVmTil_Delete ( OpenVmTil * ovt )
-{
-    if ( ! _OS_ ) OVT_Static_New ( ) ;
-    _OpenVmTil_Delete ( ovt ) ;
-}
-
-void
 _OpenVmTil_Init ( OpenVmTil * ovt, int64 resetHistory )
 {
     ovt->MemorySpace0 = MemorySpace_New ( ovt, "DefaultMemorySpace" ) ;
-    ovt->CSLInternalSpace = MemorySpace_NBA_OvtNew ( ( byte* ) "CSLInternalSpace", ovt->CSLSize, T_CSL ) ;
+    ovt->CSL_InternalSpace = MemorySpace_NBA_OvtNew ( ( byte* ) "CSLInternalSpace", ovt->CSLSize, T_CSL ) ;
     ovt->InternalObjectSpace = MemorySpace_NBA_OvtNew ( ( byte* ) "InternalObjectSpace", ovt->InternalObjectsSize, INTERNAL_OBJECT_MEM ) ; // used in _DObject_ValueDefinition_Init
     ovt->BufferList = _dllist_New ( OPENVMTIL ) ; // put it here to minimize allocating chunks for each node and the list
     ovt->RecycledWordList = _dllist_New ( OPENVMTIL ) ; // put it here to minimize allocating chunks for each node and the list
@@ -171,7 +165,7 @@ void
 OVT_PrintStartupOptions ( OpenVmTil * ovt )
 {
     int i ;
-    for ( i = ovt->Argc ; i ; i -- )  Printf ( "\n\nOVT_GetStartupOptions :: ovt->Argv [%d] = %s\n\n", i, ovt->Argv [i] ) ;
+    for ( i = ovt->Argc ; i ; i -- ) Printf ( "\n\nOVT_GetStartupOptions :: ovt->Argv [%d] = %s\n\n", i, ovt->Argv [i] ) ;
     Printf ( "\n\nOVT_GetStartupOptions :: ovt->StartupFilename = %s\n\n", ovt->StartupFilename ) ;
     //if ( ovt->Verbosity > 1 ) Pause ( ) ;
 }

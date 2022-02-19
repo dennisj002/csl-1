@@ -204,7 +204,7 @@ CSL_DoReturnWord ( Word * word )
     Word * word1 = CSL_Parse_Interpret_KeywordOperand ( word, 1 ) ;
     if ( word1 )
     {
-        compiler->ReturnLParenVariableWord = word1 ;
+        compiler->ReturnVariableWord = word1 ;
         if ( word1->W_ObjectAttributes & REGISTER_VARIABLE ) SetHere ( word1->Coding, 1 ) ;
         else Word_Check_ReSet_To_Here_StackPushRegisterCode ( word1, 0 ) ;
         if ( ! _Readline_Is_AtEndOfBlock ( _Context_->ReadLiner0 ) ) _CSL_CompileCallGoto ( 0, GI_RETURN ) ;
@@ -212,12 +212,13 @@ CSL_DoReturnWord ( Word * word )
     }
     if ( word->W_MorphismAttributes & ( T_TOS ) )
     {
+        //compiler->ReturnWord = word ;
         SetState ( compiler, RETURN_TOS, true ) ;
         byte mov_r14_rax [] = { 0x49, 0x89, 0x06 } ; //mov [r14], rax
         if ( memcmp ( mov_r14_rax, Here - 3, 3 ) )
         {
-            compiler->ReturnWord = Compiler_CopyDuplicatesAndPush ( compiler->ReturnWord, -1, -1 ) ; // want to have a copy because 'return may be responsible for another code output in Compiler_RemoveLocalFrame
-            Compiler_Word_SCHCPUSCA (  compiler->ReturnWord, 0 ) ;
+            ///compiler->ReturnWord = Compiler_CopyDuplicatesAndPush ( compiler->ReturnWord, - 1, - 1 ) ; // want to have a copy because 'return may be responsible for another code output in Compiler_RemoveLocalFrame
+            //Compiler_Word_SCHCPUSCA ( compiler->ReturnWord, 0 ) ;
             Compile_Move_TOS_To_ACCUM ( DSP ) ; // save TOS to ACCUM so we can set return it as TOS below
         }
     }
@@ -249,14 +250,25 @@ CSL_DoReturnWord ( Word * word )
 void
 Compiler_RemoveLocalFrame ( Compiler * compiler )
 {
+    Compiler_WordStack_SCHCPUSCA( 0, 0 )  ;
     if ( ! GetState ( _Compiler_, LISP_MODE ) ) Compiler_WordStack_SCHCPUSCA ( 0, 0 ) ;
     int64 parameterVarsSubAmount = 0 ;
-    Word * returnVariable = compiler->ReturnVariableWord ? compiler->ReturnVariableWord : compiler->ReturnLParenVariableWord ; //?  compiler->ReturnLParenVariableWord :  compiler->ReturnWord ;
+    Word * returnVariable = compiler->ReturnVariableWord ; //? compiler->ReturnVariableWord : compiler->ReturnWord ; //?  compiler->ReturnLParenVariableWord :  compiler->ReturnWord ;
     Boolean returnValueFlag = GetState ( compiler, RETURN_TOS ) || returnVariable ;
     if ( compiler->NumberOfArgs ) parameterVarsSubAmount = ( compiler->NumberOfArgs - returnValueFlag ) * CELL ;
     if ( compiler->NumberOfNonRegisterLocals || compiler->NumberOfNonRegisterArgs )
     {
-        // remove the incoming parameters -- like in C
+        if ( ( returnValueFlag ) && ( ! IsWordRecursive ) )  //if ( ( returnValueFlag ) && ! ( _LC_ ) )
+        {
+            byte add_r14_0x8__mov_r14_rax [ ] = { 0x49, 0x83, 0xc6, 0x08, 0x49, 0x89, 0x06 } ;
+            if ( ! memcmp ( add_r14_0x8__mov_r14_rax, Here - 7, 7 ) ) 
+            {
+                CSL_AdjustDbgSourceCodeAddress ( Here, Here - 7 ) ;
+                _ByteArray_UnAppendSpace ( _O_CodeByteArray, 7 ) ;
+            }
+
+        }
+         // remove the incoming parameters -- like in C
         _Compile_LEA ( DSP, FP, 0, - CELL ) ; // restore sp - release locals stack frame
         _Compile_Move_StackN_To_Reg ( FP, DSP, 1 ) ; // restore the saved pre fp - cf AddLocalsFrame
     }
@@ -268,17 +280,15 @@ Compiler_RemoveLocalFrame ( Compiler * compiler )
     // nb : stack was already adjusted accordingly for this above by reducing the SUBI subAmount or adding if there weren't any parameter variables
     if ( returnValueFlag || IsWordRecursive )
     {
-        Compiler_Word_SCHCPUSCA ( returnVariable, 0 ) ;// compiler->ReturnWord, 0 ) ;
+        Compiler_Word_SCHCPUSCA ( returnVariable, 0 ) ; // compiler->ReturnWord, 0 ) ;
         if ( returnVariable )
         {
-            //Compiler_Word_SCHCPUSCA ( returnVariable, 0 ) ;
             if ( returnVariable->W_ObjectAttributes & REGISTER_VARIABLE )
             {
                 _Compile_Move_Reg_To_StackN ( DSP, 0, returnVariable->RegToUse ) ;
                 return ;
             }
         }
-        //Compiler_Word_SCHCPUSCA ( compiler->ReturnLParenVariableWord, 0 ) ;
         Compile_Move_ACC_To_TOS ( DSP ) ;
     }
 }
@@ -343,12 +353,14 @@ CSL_LocalVariablesBegin ( )
 // compiler can use the slot number in the function being compiled
 // compile a local variable such that when used at runtime it pushes
 // the slot address on the DataStack
+
 Boolean
-ScanParametersForREGvars ()
+ScanParametersForREGvars ( )
 {
     byte * ils = String_New ( _ReadLiner_->InputLineString, TEMPORARY ) ;
     return ( strstr ( ils, "REG" ) || strstr ( ils, "REG" ) ) ;
 }
+
 Namespace *
 _CSL_Parse_LocalsAndStackVariables ( int64 svf, int64 lispMode, ListObject * args, Stack * nsStack, Namespace * localsNs ) // svf : stack variables flag
 {
@@ -373,11 +385,11 @@ _CSL_Parse_LocalsAndStackVariables ( int64 svf, int64 lispMode, ListObject * arg
     if ( lispMode == 2 ) args = ( ListObject * ) args ;
     else if ( lispMode ) args = ( ListObject * ) args->Lo_List->Head ;
 #if 0 // use all reg vars ?? need to save regs before function calls and restore on return    
-    Boolean rFlag = ScanParametersForREGvars () ;
-    if ( ( ! rFlag ) && GetState ( _CSL_, OPTIMIZE_ON ) && (! (Namespace_IsUsing ( ( byte* ) "BigNum" ) )))
+    Boolean rFlag = ScanParametersForREGvars ( ) ;
+    if ( ( ! rFlag ) && GetState ( _CSL_, OPTIMIZE_ON ) && ( ! ( Namespace_IsUsing ( ( byte* ) "BigNum" ) ) ) )
         regFlag = true ;
 #endif
-    
+
     while ( ( lispMode ? ( int64 ) ( args = _LO_Next ( args ) ) : 1 ) )
     {
         if ( lispMode )
@@ -420,7 +432,7 @@ _CSL_Parse_LocalsAndStackVariables ( int64 svf, int64 lispMode, ListObject * arg
                 //_Printf ( "\nLocal variables syntax error : no closing parenthesis ')' found" ) ;
                 CSL_Exception ( SYNTAX_ERROR, "\nLocal variables syntax error : no closing parenthesis ')' found", 1 ) ;
                 break ;
-            } 
+            }
             if ( ! lispMode )
             {
                 word = Finder_Word_FindUsing ( finder, token, 1 ) ; // 1: saveQns ?? find after Literal - eliminate making strings or numbers words ??
@@ -441,12 +453,12 @@ _CSL_Parse_LocalsAndStackVariables ( int64 svf, int64 lispMode, ListObject * arg
                 objectAttributes |= LOCAL_VARIABLE ;
                 if ( lispMode ) lispAttributes |= T_LISP_SYMBOL ; // no ltype yet for _CSL_LocalWord
             }
-            if ( regFlag == true ) 
-            //if ( ( regFlag == true ) || ((numberOfVariables < 4) && ( GetState ( _CSL_, OPTIMIZE_ON ) ) ) )
+            if ( regFlag == true )
+                //if ( ( regFlag == true ) || ((numberOfVariables < 4) && ( GetState ( _CSL_, OPTIMIZE_ON ) ) ) )
             {
                 objectAttributes |= REGISTER_VARIABLE ;
                 numberOfRegisterVariables ++ ;
-                numberOfVariables --  ;
+                numberOfVariables -- ;
             }
             word = DataObject_New ( objectAttributes, 0, token, 0, objectAttributes, lispAttributes, 0, 0, 0, DICTIONARY, - 1, - 1 ) ;
             if ( lispMode ) dllist_AddNodeToTail ( localsNs->W_List, ( dlnode* ) word ) ;

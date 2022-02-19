@@ -68,25 +68,13 @@ Lexer_ParseToken_ToWord ( Lexer * lexer, byte * token, int64 tsrli, int64 scwi )
 {
     Context * cntx = _Context_ ;
     Compiler * compiler = cntx->Compiler0 ;
-    Word * word = 0, *lword = 0 ;
+    Word * word = 0 ; 
     Namespace * locals = compiler->LocalsNamespace ;
     if ( token )
     {
-        if ( locals ) lword = _Finder_FindWord_InOneNamespace ( _Finder_, locals, token ) ;
-        if ( ! lword ) // a fix for the problem with local variables in c functions finding wrong words in other than using namespaces eg. class definitions
-        {
-            word = Finder_Word_FindUsing ( cntx->Finder0, token, 0 ) ; // maybe need to respect a possible qualifying namespace ??
-            if ( word && ( GetState ( compiler, DOING_C_TYPE ) && ( ! ( IS_MORPHISM_TYPE ( word ) ) ) ) )
-            {
-                //if ( word && Is_DebugOn ) Printf ( "\nRejected C Type word %s = %lx", word->Name, word ) ;
-                word = _Lexer_ParseToken_ToWord ( lexer, token, - 1, - 1 ) ;
-            }
-        }
-        else word = lword ;
-        if ( ! word )
-        {
-            word = _Lexer_ParseToken_ToWord ( lexer, token, - 1, - 1 ) ;
-        }
+        if ( locals ) word = _Finder_FindWord_InOneNamespace ( _Finder_, locals, token ) ;
+        if ( ! word ) word = Finder_Word_FindUsing ( cntx->Finder0, token, 0 ) ; // maybe need to respect a possible qualifying namespace ??
+        if ( ! word ) word = _Lexer_ParseToken_ToWord ( lexer, token, - 1, - 1 ) ;
         lexer->TokenWord = word ;
     }
     return word ;

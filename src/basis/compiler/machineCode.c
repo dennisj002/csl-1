@@ -441,8 +441,7 @@ _Compile_X_Group1 ( Boolean code, Boolean toRegOrMem, Boolean mod, Boolean reg, 
     // we need to be able to set the size so we can know how big the instruction will be in eg. CompileVariable
     // otherwise it could be optimally deduced but let caller control by keeping operandSize parameter
     // some times we need cell_t where bytes would work
-    Compiler_WordStack_SCHCPUSCA ( 0, 1 ) ;
-    //Compile_CalculateWrite_Instruction_X64 ( 0, opCode, mod, reg, rm, DISP_B | REX_W | MODRM_B, sib, disp, 0, 0, osize ) ;
+    Compiler_WordStack_SCHCPUSCA ( 0, 0 ) ;
     if ( operandSize < 8 )
     {
         int64 opCode0 ;
@@ -451,13 +450,8 @@ _Compile_X_Group1 ( Boolean code, Boolean toRegOrMem, Boolean mod, Boolean reg, 
         {
             opCode0 = 0x66 ;
             opCode |= rm ;
-            //modRm = 0 ;
         }
-        else if ( operandSize == 4 )
-        {
-            opCode |= rm ;
-            //modRm = 0 ;
-        }
+        else if ( operandSize == 4 )  opCode |= rm ;
         Compile_CalculateWrite_Instruction_X64 ( opCode0, opCode, mod, reg, rm, controlFlags, sib, disp, 0, 0, operandSize ) ;
     }
     else //if ( osize == 8 ) 
@@ -1029,6 +1023,7 @@ _Compile_MOVZX_BYTE_REG ( Boolean reg, Boolean rm )
 void
 _Compile_Return ( )
 {
+    //Compiler_WordStack_SCHCPUSCA( 0, 0 )  ;
     Compile_CalculateWrite_Instruction_X64 ( 0, 0xc3, 0, 0, 0, 0, 0, 0, 0, 0, 0 ) ;
 }
 

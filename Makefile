@@ -61,10 +61,10 @@ clean :
 
 src/include/prototypes.h : $(INCLUDES) #$(S9_INCLUDES)
 	cp src/include/_proto.h src/include/prototypes.h
-	cp src/include/_proto.h src/include/s9_prototypes.h
+	#cp src/include/_proto.h src/include/s9_prototypes.h
 	cproto -o proto.h $(SOURCES)
-	cproto -o s9_proto.h $(S9_SOURCES)
-	mv s9_proto.h src/include/s9_prototypes.h
+	#cproto -o s9_proto.h $(S9_SOURCES)
+	#mv s9_proto.h src/include/s9_prototypes.h
 	mv proto.h src/include/prototypes.h
 	make oclean
 

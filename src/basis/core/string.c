@@ -1111,9 +1111,9 @@ _Buffer_New ( int64 size, int64 flag )
             nextNode = dlnode_Next ( node ) ;
             b = ( Buffer* ) node ;
             d0 ( if ( b->InUseFlag != N_PERMANENT ) Printf ( "\n_Buffer_New : buffer = 0x%08x : flag = 0x%08x : size = %d : length = %d : data = %s\n", b, b->InUseFlag, b->B_Size, strlen ( b->B_Data ), b->B_Data ) ) ;
-            //if ( ( b->InUseFlag & ( N_FREE | N_UNLOCKED ) ) && ( b->B_Size >= size ) ) goto init ;
-            //else continue ; //if ( b->InUseFlag == N_PERMANENT ) continue ; //break ;
-            if ( ( b->InUseFlag != N_PERMANENT ) && ( b->B_Size >= size ) ) goto init ;
+            if ( ( b->InUseFlag & ( N_FREE | N_UNLOCKED ) ) && ( b->B_Size >= size ) ) goto init ;
+            else continue ; //if ( b->InUseFlag == N_PERMANENT ) continue ; //break ;
+            //if ( ( b->InUseFlag != N_PERMANENT ) && ( b->B_Size >= size ) ) goto init ;
         }
     }
     d0 ( Buffer_PrintBuffers ( ) ) ;

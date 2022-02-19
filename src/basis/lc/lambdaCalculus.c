@@ -592,7 +592,7 @@ LC_Init ( )
 void
 List_Eval ( )
 {
-    LambdaCalculus * lc = LC_Init_Runtime ( ) ;
+    //LambdaCalculus * lc = LC_Init_Runtime ( ) ;
     //LC_LispNamespaceOn ( ) ;
     ListObject * l0 = ( ListObject * ) DataStack_Pop ( ), *l1 ;
     l1 = LC_Eval ( l0, 0, 1 ) ;

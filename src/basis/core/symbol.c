@@ -58,7 +58,7 @@ Symbol_CompareName2 ( Symbol * symbol, byte * name, Namespace * ns )
             symbol->S_ContainingNamespace ? symbol->S_ContainingNamespace->Name : ( byte* ) "", symbol->S_Name, name ) ; } ) ; //Pause () ; } ) ;
     if ( name && symbol && symbol->S_Name && ( String_Equal ( symbol->S_Name, name ) ) && (symbol->S_ContainingNamespace == ns) )
     {
-        d0 ( if ( Is_DebugOn ) { Printf ( "\n FOUND : symbol name = %s.%s : name = %s",
+        d0 ( if ( Is_DebugOn ) { Printf ( "\n FOUND  : symbol name = %s.%s : name = %s",
             symbol->S_ContainingNamespace ? symbol->S_ContainingNamespace->Name : ( byte* ) "", symbol->S_Name, name ) ; } ) ; //Pause () ; } ) ;
             
         return symbol ;

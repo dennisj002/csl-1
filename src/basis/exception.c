@@ -101,7 +101,7 @@ _OpenVmTil_ShowExceptionInfo ( )
     if ( GetState ( debugger, DBG_STEPPING ) )
     {
         Debugger_Registers ( debugger ) ;
-        Debugger_UdisOneInstruction (debugger, 0, debugger->DebugAddress, ( byte* ) "", ( byte* ) "" ) ;
+        Debugger_UdisOneInstruction ( debugger, 0, debugger->DebugAddress, ( byte* ) "", ( byte* ) "" ) ;
     }
     Debugger_ShowInfo ( debugger, _O_->ExceptionMessage, _O_->Signal ) ;
     if ( word != _Context_->LastEvalWord ) _CSL_Source ( word, 0 ) ;
@@ -144,12 +144,12 @@ OVT_PauseInterpret ( Context * cntx, byte key )
     ReadLine_Init ( rl, _CSL_Key ) ;
     SetState ( cntx, AT_COMMAND_LINE, true ) ;
     if ( ( key <= ' ' ) || ( key == '\\' ) ) key = 0 ;
-    Printf ( "\nPause interpreter : hit <enter> or <esc> to exit\n" ) ;
+    Printf ( "\nPause interpreter : hit <enter> or <esc> to exit : \n" ) ;
     do
     {
         svPrompt = ReadLine_GetPrompt ( rl ) ;
         ReadLine_SetPrompt ( rl, "=> " ) ;
-        Context_DoPrompt (cntx, 0) ;
+        Context_DoPrompt ( cntx, 0 ) ;
         _ReadLine_GetLine ( rl, key ) ;
         if ( ReadLine_PeekNextChar ( rl ) < ' ' ) break ; // '\n', <esc>, etc.
         Interpret_ToEndOfLine ( cntx->Interpreter0 ) ;
@@ -196,7 +196,7 @@ OVT_Pause ( byte * prompt, int64 signalExceptionsHandled )
 
             int64 key = Key ( ) ;
             _ReadLine_PrintfClearTerminalLine ( ) ;
-            Printf ( "\nPause : press <enter> to exit" ) ;
+            Printf ( "\nPause : press <enter> to exit : \n" ) ;
             switch ( key )
             {
                 case 'x': case 'X':
@@ -334,26 +334,30 @@ OpenVmTil_SignalAction ( int signal, siginfo_t * si, void * uc ) //nb. void ptr 
 {
     d0 ( Printf ( "\nOpenVmTil_SignalAction :: signal = %d\n", signal ) ) ;
     if ( ( signal == SIGTERM ) || ( signal == SIGKILL ) || ( signal == SIGQUIT ) || ( signal == SIGSTOP ) ) OVT_Exit ( ) ;
-    _O_->Signal = signal ;
-    _O_->SigAddress = si->si_addr ; //( Is_DebugOn && _Debugger_->DebugAddress ) ? _Debugger_->DebugAddress : si->si_addr ;
-    _O_->SigLocation = ( ( ! ( signal & ( SIGSEGV | SIGBUS ) ) ) && _Context_ ) ? ( byte* ) c_gd ( Context_Location ( ) ) : ( byte* ) "" ;
-    OVT_ResetSignals ( _O_->Signal ) ;
-    if ( ( signal >= SIGCHLD ) || ( signal == SIGTRAP ) ) //||( signal == SIGBUS ))
+    //if ( _O_ )
     {
-        if ( ( signal != SIGCHLD ) && ( signal != SIGWINCH ) && ( signal != SIGTRAP ) ) OpenVmTil_ShowExceptionInfo ( ) ;
-        else
+        _O_->Signal = signal ;
+        _O_->SigAddress = si->si_addr ; //( Is_DebugOn && _Debugger_->DebugAddress ) ? _Debugger_->DebugAddress : si->si_addr ;
+        _O_->SigLocation = ( ( ! ( signal & ( SIGSEGV | SIGBUS ) ) ) && _Context_ ) ? ( byte* ) c_gd ( Context_Location ( ) ) : ( byte* ) "" ;
+        OVT_ResetSignals ( _O_->Signal ) ;
+        if ( ( signal >= SIGCHLD ) || ( signal == SIGTRAP ) ) //||( signal == SIGBUS ))
         {
-            // ignore this category -- just return
-            _O_->SigAddress = 0 ; //|| ( signal == SIGWINCH ) ) _O_->SigAddress = 0 ; // 17 : "CHILD TERMINATED" : ignore; its just back from a shell fork
-            _O_->Signal = 0 ;
+            if ( ( signal != SIGCHLD ) && ( signal != SIGWINCH ) && ( signal != SIGTRAP ) ) OpenVmTil_ShowExceptionInfo ( ) ;
+            else
+            {
+                // ignore this category -- just return
+                _O_->SigAddress = 0 ; //|| ( signal == SIGWINCH ) ) _O_->SigAddress = 0 ; // 17 : "CHILD TERMINATED" : ignore; its just back from a shell fork
+                _O_->Signal = 0 ;
+            }
         }
+        else if ( _O_->SigSegvs > 1 )
+        {
+            OVT_SeriousErrorPause ( ) ;
+            _OVT_SigLongJump ( & _O_->JmpBuf0 ) ;
+        }
+        else OVT_Throw ( _O_->Signal, _O_->RestartCondition, 1 ) ;
     }
-    else if ( _O_->SigSegvs > 1 )
-    {
-        OVT_SeriousErrorPause ( ) ;
-        _OVT_SigLongJump ( & _O_->JmpBuf0 ) ;
-    }
-    else OVT_Throw ( _O_->Signal, _O_->RestartCondition, 1 ) ;
+    //else  _OVT_SigLongJump ( & _OSMS_->JmpBuf0 ) ; // ?! doesn't work
 }
 
 void

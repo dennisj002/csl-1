@@ -16,7 +16,7 @@ CPrimitive CPrimitives [] = {
 
     { "(", 0, 0, 0, ( block ) LC_ReadEvalPrint_AfterAFirstLParen, IMMEDIATE | KEYWORD | LEFT_PAREN, 0, 0, "Lisp", "Root" },
     { "_(", 0, 0, 0, ( block ) LC_ReadList, IMMEDIATE | KEYWORD, 0, 0, "Lisp", "Root" },
-    { "eval", 0, 0, 0, ( block ) List_Eval, IMMEDIATE | KEYWORD, 0, 0, "Lisp", "Root" },
+    //{ "eval", 0, 0, 0, ( block ) List_Eval, IMMEDIATE | KEYWORD, 0, 0, "Lisp", "Root" },
     { "print", 0, 0, 0, ( block ) List_PrintWithValue, 0, 0, 0, "Lisp", "Root" },
     { ")", 0, 0, 0, CSL_C_Comma, IMMEDIATE | NO_OP_WORD | KEYWORD, 0, 0, "Lisp", "Root" },
     { "_Printf", 0, 0, 0, ( block ) Printf, 0, 0, LISP_C_RTL_ARGS | T_LISP_SPECIAL | LISP_VOID_RETURN, "Lisp", "Root" },

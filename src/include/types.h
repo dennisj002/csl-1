@@ -114,23 +114,6 @@ enum types
 } ;
 typedef struct
 {
-    dllist osl_List ;
-    dlnode n_Head ;
-    dlnode n_Tail ;
-} OS_List ;
-typedef struct
-{
-    OS_List OVT_StaticMemList ;
-    int64 OVT_MmapAllocated ;
-} OVT_StaticMemSystem ;
-typedef struct
-{
-    dlnode osc_Node ;
-    int64 osc_Size ;
-    byte osc_b_Chunk [0] ;
-} OS_Chunk, OS_Node ;
-typedef struct
-{
     union
     {
         struct
@@ -199,8 +182,19 @@ typedef void ( *MapFunction2_64 ) ( dlnode *, uint64, int64 ) ;
 typedef int64( *MapFunction3 ) ( dlnode *, int64, int64, int64 ) ;
 typedef void ( *MapFunction4 ) ( dlnode *, int64, int64, int64, int64 ) ;
 typedef void ( *MapFunction5 ) ( dlnode *, int64, int64, int64, int64, int64 ) ;
-typedef
-Boolean( *BoolMapFunction_1 ) ( dlnode * ) ;
+typedef Boolean( *BoolMapFunction_1 ) ( dlnode * ) ;
+#if 1
+typedef struct //_MemChunk
+{
+    DLNode S_Node ;
+    int64 Type ;
+    byte * S_unmap  ;
+    int64 S_ChunkSize  ; // S_ChunkSize is the total size of the chunk including any prepended accounting structure in that total
+    int64 S_WAllocType  ;
+    byte * S_Name ;
+    byte * S_pb_Data2 ;
+} MemChunk ;
+#endif
 typedef struct _Identifier // _Symbol
 {
     DLNode S_Node ;
@@ -239,7 +233,7 @@ typedef struct _Identifier // _Symbol
         byte * TextMacroValue ;
     } ;
     struct _WordData * W_WordData ;
-} Identifier, ID, Word, Namespace, Vocabulary, Class, DynamicObject, DObject, ListObject, Symbol, MemChunk, HistoryStringNode, Buffer, CaseNode ;
+} Identifier, ID, Word, Namespace, Vocabulary, Class, DynamicObject, DObject, ListObject, Symbol, HistoryStringNode, Buffer, CaseNode ;
 #define S_Car S_Node.n_DLNode.n_After
 #define S_Cdr S_Node.n_DLNode.n_Before
 #define S_After S_Cdr
@@ -745,7 +739,7 @@ typedef struct
     int64 * FrameSizeCellOffset, BlocksBegun ;
     byte * RspSaveOffset ;
     byte * RspRestoreOffset ;
-    Word *ReturnWord, * ReturnVariableWord, * ReturnLParenVariableWord, * ReturnLParenOperandWord, * Current_Word_New, *Current_Word_Create, * LHS_Word ;
+    Word *ReturnWord, * ReturnVariableWord, * ReturnLParenOperandWord, * Current_Word_New, *Current_Word_Create, * LHS_Word ;
     Namespace *C_BackgroundNamespace, *C_FunctionBackgroundNamespace, *Qid_BackgroundNamespace, *LocalsNamespace, *AutoVarTypeNamespace, *NonCompilingNs ; //, ** FunctionTypesArray ;
     dllist * GotoList ;
     dllist * CurrentMatchList ;
@@ -1014,7 +1008,7 @@ typedef struct
     NamedByteArray * HistorySpace ;
     NamedByteArray * InternalObjectSpace ;
     NamedByteArray * OpenVmTilSpace ;
-    NamedByteArray * CSLInternalSpace ;
+    NamedByteArray * CSL_InternalSpace ;
 
     // variables accessible from csl
     int64 Verbosity, StartIncludeTries, StartedTimes, Restarts, SigSegvs, ReAllocations, Dbi ;
@@ -1086,8 +1080,16 @@ typedef struct typeStatusInfo
 } TypeStatusInfo, TSI ;
 typedef struct
 {
-    int64 HistoryAllocation ; //mmap_TotalMemAllocated, mmap_TotalMemFreed, HistoryAllocation ; //, StaticAllocation ;
-    int64 TotalMemAllocated, TotalMemFreed, Mmap_RemainingMemoryAllocated ;
-    dllist *HistorySpace_MemChunkStringList, *OvtMemChunkList ; //, *StaticMemChunkList ;
-} OVT_Static ;
-
+    MemChunk OS_MemChunk ;
+    dllist * OVT_StaticMemList ;
+    int64 Static_Allocated, Static_Freed, Static_RemainingAllocated ;
+    int64 HistoryAllocated ; 
+    dllist * HistorySpace_MemChunkStringList ; 
+    //sigjmp_buf JmpBuf0 ;
+} OVT_StaticMemSystem, OSMS ;
+typedef struct
+{
+    MemChunk OVT_MemChunk ;
+    dllist * OvtMemChunkList ;
+    int64 Allocated, Freed, RemainingAllocated ;
+} OVT_MemSystem, OMS ;

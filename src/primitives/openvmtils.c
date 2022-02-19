@@ -109,12 +109,12 @@ OpenVmTil_Print_DataSizeofInfo ( int64 flag )
         Printf ( "Compiler size : %d bytes, ", sizeof (Compiler ) ) ;
         Printf ( "ByteArray size : %d bytes, ", sizeof (ByteArray ) ) ;
         Printf ( "NamedByteArray size : %d bytes, ", sizeof (NamedByteArray ) ) ;
-        Printf ( "\nMemChunk size : %d bytes", sizeof ( MemChunk ) ) ;
+        Printf ( "\nMemChunk size : %d bytes, ", sizeof ( MemChunk ) ) ;
         Printf ( "CSL size : %d bytes, ", sizeof (CSL ) ) ;
         Printf ( "OpenVimTil size : %d bytes, ", sizeof (OpenVmTil ) ) ;
-        Printf ( "OVT_Static size : %d bytes, ", sizeof (OVT_Static ) ) ;
-        Printf ( "OS_Chunk size : %d bytes, ", sizeof (OS_Chunk ) ) ;
-        Printf ( "\nOS_Node size : %d bytes, ", sizeof (OS_Node ) ) ;
+        Printf ( "OVT_Static size : %d bytes, ", sizeof (OVT_StaticMemSystem ) ) ;
+        //Printf ( "OS_Chunk size : %d bytes, ", sizeof (OS_Chunk ) ) ;
+        //Printf ( "\nOS_Node size : %d bytes, ", sizeof (OS_Node ) ) ;
         Printf ( "Stack size : %d bytes", sizeof (Stack ) ) ;
     }
 }

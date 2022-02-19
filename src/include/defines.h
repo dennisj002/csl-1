@@ -236,7 +236,6 @@
 #define BLOCK               ( (uint64) 1 << 14 )
 #define INLINE              ( (uint64) 1 << 15 )
 
-//#define LISP_csl         ( (uint64) 1 << 16 )
 #define LEFT_PAREN          ( (uint64) 1 << 17 ) // '('
 #define RIGHT_PAREN         ( (uint64) 1 << 18 ) // ')'
 #define OP_RAX_PLUS_1ARG    ( (uint64) 1 << 19 )
@@ -250,7 +249,6 @@
 #define COMMENT             ( (uint64) 1 << 24 ) 
 #define NO_OP_WORD          ( (uint64) 1 << 25 ) 
 #define SYNTACTIC           ( (uint64) 1 << 26 ) 
-//#define DO_DOES             ( (uint64) 1 << 27 ) 
 
 #define CATEGORY_PLUS_PLUS_MINUS_MINUS ( (uint64) 1 << 28 )
 #define CATEGORY_PP_MM CATEGORY_PLUS_PLUS_MINUS_MINUS
@@ -282,29 +280,25 @@
 #define DLSYM_WORD      ( (uint64) 1 << 54 ) 
 
 #define RAX_RETURN          ( (uint64) 1 << 55 ) 
-//#define CATEGORY_SHIFT      ( (uint64) 1 << 56 ) 
 #define RT_STEPPING_DEBUG   ( (uint64) 1 << 57 )
 #define ADDRESS_OF_OP       ( (uint64) 1 << 58 )
 
-//#define PREFIXABLE          ( (uint64) 1 << 59 ) 
 #define LOGIC_NEGATE        ( (uint64) 1 << 59 )
 #define COMBINATOR          ( (uint64) 1 << 61 )
 #define CATEGORY_OP         ( (uint64) 1 << 62 )
 #define CATEGORY_OP_OPEQUAL ( (uint64) 1 << 63 )
 
 // ObjectAttributes - object and type defines
-//#define ARRAY_TYPE          ( (uint64) 1 <<  8 ) 
-//#define VARIABLE            ( (uint64) 1 <<  9 ) 
 #define TEXT_MACRO          ( (uint64) 1 << 15 )
 #define STRING_MACRO        ( (uint64) 1 << 16 )
 #define T_OBJECT            ( (uint64) 1 << 17 )
-//#define T_MORPHISM          ( (uint64) 1 << 18 )
 #define DOBJECT_FIELD        ( (uint64) 1 << 18 )
 #define DEFINES_MACRO        ( (uint64) 1 << 19 )
 #define RECYCLABLE_COPY     ( (uint64) 1 << 21 )
 #define RECYCLABLE_LOCAL    ( (uint64) 1 << 22 )
 #define T_TYPE_VARIABLE     ( (uint64) 1 << 23 )
-#define T_ANY_FIXED_TYPE    ( (uint64) 1 << 28 )
+#define T_ANY_FIXED_TYPE    ( (uint64) 1 << 24 )
+#define MEM_CHUNK           ( (uint64) 1 << 25 )
 #define T_ANY               T_ANY_FIXED_TYPE    
 #define C_INFIX_OP_EQUAL    ( (uint64) 1 << 26 )
 #define STRUCTURE           ( (uint64) 1 << 27 )
@@ -470,6 +464,7 @@
 #define WORD_RECYCLING ( (uint64) 1 << 23 )
 #define WORD_COPY_MEM ( (uint64) 1 << 24 )
 #define _STATIC_ ( (uint64) 1 << 25 )
+#define MMAP ( (uint64) 1 << 26 )
 
 //#define ALL      ( INTERNAL | EXTERNAL | csl | TEMPORARY | DATA_STACK | SESSION )
 

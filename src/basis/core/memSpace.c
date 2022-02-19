@@ -1,14 +1,106 @@
 
 #include "../../include/csl.h"
 
-OVT_StaticMemSystem *_OSMS_ ;
-OVT_Static * _OS_ ;
+OVT_MemSystem *_OMS_ ; // initialized by OVT_Static_MemSystem_New
+OVT_StaticMemSystem * _OSMS_ ;
+
+/*
+typedef struct
+{
+    dllist osl_List ;
+    dlnode n_Head ;
+    dlnode n_Tail ;
+} OS_List ;
+typedef struct //_OSMS_
+{
+    OS_List OVT_StaticMemList ;
+        // OVT_StaticMemList : is used by OVT_Static_New for History nodes and _OS_->OvtMemChunkList which is used Mem_ChunkAllocate and HISTORY allocs
+        // _OSMS_->OVT_StaticMemList.osl_List is only used by 
+        //    os->HistorySpace_MemChunkStringList = _dllist_New ( OVT_STATIC ) ;
+        //    os->OvtMemChunkList = _dllist_New ( OVT_STATIC ) ;
+    int64 OVT_MmapAllocated ;
+} OVT_StaticMemSystem ;
+
+typedef struct //_OS_
+{
+    int64 HistoryAllocation ; //mmap_TotalMemAllocated, mmap_TotalMemFreed, HistoryAllocation ; //, StaticAllocation ;
+    int64 TotalMemAllocated, TotalMemFreed, Mmap_RemainingMemoryAllocated ;
+    dllist *OvtMemChunkList, *HistorySpace_MemChunkStringList ; //, *StaticMemChunkList ;
+} OVT_Static ; 
+ */
+
+void
+MemChunk_Account ( int64 size, int64 allocType, int64 flag )
+{
+    if ( allocType & ( _STATIC_ | MMAP ) )
+    {
+        if ( _OSMS_ )
+        {
+            if ( flag == MEM_ALLOC ) // OVT_StaticMemSystem
+            {
+                _OSMS_->Static_Allocated += size ;
+                _OSMS_->Static_RemainingAllocated += size ;
+            }
+            else
+            {
+                _OSMS_->Static_Freed += size ;
+                _OSMS_->Static_RemainingAllocated -= size ;
+            }
+        }
+        else printf ( "\nMemChunk_Account failure : _OSMS_" ), fflush ( stdout );
+    }
+    else
+    {
+        if ( _OMS_ )
+        {
+            if ( flag == MEM_ALLOC ) // OVT_MemSystem
+            {
+                _OMS_->Allocated += size ;
+                _OMS_->RemainingAllocated += size ;
+            }
+            else
+            {
+                _OMS_->RemainingAllocated -= size ;
+                _OMS_->Freed += size ;
+            }
+        }
+        else printf ( "\nMemChunk_Account failure : _OMS_" ), fflush ( stdout );
+    }
+}
+
+void
+_Munmap ( MemChunk * mchunk )
+{
+    int64 size = mchunk->S_ChunkSize ;
+    munmap ( mchunk, size ) ;
+}
+
+void
+MMAP_Munmap ( byte * ptr, int64 size )
+{
+    MemChunk_Account ( size, MMAP, MEM_FREE ) ;
+    munmap ( ( MemChunk * ) ptr, size ) ;
+}
+
+void
+Munmap ( MemChunk * mchunk )
+{
+#if 1 // DEBUG    
+    if ( ! ( mchunk->Type & MEM_CHUNK ) )
+    {
+        printf ( "\nMunmap : incorrect Type" ) ;
+        fflush ( stdout ) ;
+    }
+#endif    
+    MemChunk_Account ( mchunk->S_ChunkSize, mchunk->S_WAllocType, MEM_FREE ) ;
+    _Munmap ( mchunk ) ;
+}
 
 byte*
 _Mmap ( int64 size )
 {
     byte * mem = ( byte* ) mmap ( NULL, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, - 1, 0 ) ;
-    memset ( mem, 0, size ) ;
+    memset ( mem, 0, size ) ; // ??! is this necessary 
     return mem ;
 }
 
@@ -16,37 +108,48 @@ byte*
 Mmap ( int64 size )
 {
     byte * mem = _Mmap ( size ) ;
-    _OSMS_->OVT_MmapAllocated += size ;
-    return mem ;
-}
-
-void
-Munmap ( byte * chunk, int64 size )
-{
-    munmap ( chunk, size ) ;
-    _OSMS_->OVT_MmapAllocated -= size ;
-}
-
-void
-Munmap_OS_Chunk ( byte *data )
-{
-    OS_Chunk * chunk = ( OS_Chunk* ) ( data - sizeof (int64 ) ) ;
-    Munmap ( ( byte* ) chunk, chunk->osc_Size ) ;
-}
-
-byte *
-mmap_AllocMem ( int64 size )
-{
-    byte * mem = ( byte* ) Mmap ( size ) ;
-    if ( ( mem == MAP_FAILED ) )
+    if ( ( mem == MAP_FAILED ) ) // MAP_FAILED == -1
     {
         perror ( "_Mem_Mmap" ) ;
         OVT_ShowMemoryAllocated ( ) ;
         //OVT_Exit ( ) ;
         CSL_FullRestart ( ) ;
     }
-    //Kbhit_Pause ( ) ;
     return mem ;
+}
+
+byte*
+MMAP_Mmap ( int64 size, int64 allocType )
+{
+    byte * mem = _Mmap ( size ) ;
+    MemChunk_Account ( size, allocType, MEM_ALLOC ) ;
+    return mem ;
+}
+
+// MemChunk struct is at the beginning of structures being allocated 
+
+MemChunk *
+_MemChunk_Allocate ( int64 size, uint64 allocType )
+{
+    // a MemChunk is already a part of the size being part of the ByteArray and NamedByteArray : cf. types.h
+    MemChunk * mchunk = ( MemChunk * ) MMAP_Mmap ( size, allocType ) ; //Mmap ( size ) ;
+    mchunk->S_unmap = ( byte* ) mchunk ;
+    mchunk->S_ChunkSize = size ; // S_ChunkSize is the total size of the chunk including any prepended accounting structure in that total
+    mchunk->S_WAllocType = allocType ;
+    mchunk->Data = ( byte* ) ( mchunk + 1 ) ;
+    mchunk->Type = MEM_CHUNK ;
+    return mchunk ; //->Data ;
+}
+
+MemChunk *
+MemChunk_AllocateAdd ( int64 size, int64 allocType )
+{
+    MemChunk * mchunk = ( MemChunk * ) _MemChunk_Allocate ( size, allocType ) ;
+    if ( allocType & _STATIC_ ) dllist_AddNodeToHead ( _OSMS_->OVT_StaticMemList, ( dlnode* ) mchunk ) ;
+    else if ( allocType & HISTORY ) dllist_AddNodeToHead ( _OSMS_->HistorySpace_MemChunkStringList, ( dlnode* ) mchunk ) ;
+    else if ( allocType != MMAP ) dllist_AddNodeToHead ( _OMS_->OvtMemChunkList, ( dlnode* ) mchunk ) ;
+    // !! else if ( allocType == MMAP ) !! not added to a list ; must be unmapped individually
+    return mchunk ;
 }
 
 void
@@ -64,112 +167,52 @@ _MemChunk_WithSymbol_Show ( MemChunk * mchunk, int64 flag )
 }
 
 void
-_MemChunk_Account ( MemChunk * mchunk, int64 flag )
-{
-    if ( flag == MEM_ALLOC )
-    {
-        _OS_->TotalMemAllocated += mchunk->S_ChunkSize ;
-        _OS_->Mmap_RemainingMemoryAllocated += mchunk->S_ChunkSize ;
-    }
-    else
-    {
-        _OS_->TotalMemFreed += mchunk->S_ChunkSize ;
-        _OS_->Mmap_RemainingMemoryAllocated -= mchunk->S_ChunkSize ;
-    }
-}
-
-void
 _Mem_ChunkFree ( MemChunk * mchunk )
 {
-    _MemChunk_Account ( mchunk, MEM_FREE ) ;
     dlnode_Remove ( ( dlnode* ) mchunk ) ;
-    Munmap ( mchunk->S_unmap, mchunk->S_ChunkSize ) ;
-}
-
-MemChunk *
-_Mem_ChunkAllocate ( int64 size, uint64 allocType )
-{
-    // a MemChunk is already a part of the size being part of the ByteArray and NamedByteArray : cf. types.h
-    MemChunk * mchunk = ( MemChunk * ) mmap_AllocMem ( size ) ;
-    mchunk->S_unmap = ( byte* ) mchunk ;
-    mchunk->S_ChunkSize = size ; // S_ChunkSize is the total size of the chunk including any prepended accounting structure in that total
-    mchunk->S_WAllocType = allocType ;
-    return mchunk ;
-}
-
-byte *
-Mem_ChunkAllocate ( int64 size, uint64 allocType )
-{
-    MemChunk * mchunk = ( MemChunk * ) _Mem_ChunkAllocate ( size, allocType ) ;
-    _MemChunk_Account ( ( MemChunk* ) mchunk, MEM_ALLOC ) ;
-    if ( allocType == HISTORY ) dllist_AddNodeToHead ( _OS_->HistorySpace_MemChunkStringList, ( dlnode* ) mchunk ) ;
-    else dllist_AddNodeToHead ( _OS_->OvtMemChunkList, ( dlnode* ) mchunk ) ;
-    return ( byte* ) mchunk ;
-}
-
-byte *
-OVT_Static_AllocMem ( int64 size )
-{
-    byte *mem ;
-    OS_Node * osNode ;
-    osNode = ( OS_Node * ) Mmap ( size += sizeof ( OS_Node ) ) ; //mmap_AllocMem ( size += sizeof ( OS_Node ) ) ;
-    osNode->osc_Size = size ;
-    mem = osNode->osc_b_Chunk ;
-    dllist_AddNodeToHead ( ( dllist* ) & _OSMS_->OVT_StaticMemList.osl_List, &osNode->osc_Node ) ;
-    return mem ;
-}
-
-OVT_StaticMemSystem *
-OVT_Static_MemSystem_New ( )
-{
-    OS_Node * osNode ;
-    int64 size ;
-    osNode = ( OS_Node * ) _Mmap ( size = sizeof ( OS_Node ) + sizeof ( OVT_StaticMemSystem ) ) ;
-    OVT_StaticMemSystem * osms = _OSMS_ = ( OVT_StaticMemSystem * ) osNode->osc_b_Chunk ;
-    osms->OVT_MmapAllocated = osNode->osc_Size = size ;
-    OS_List_Init ( &osms->OVT_StaticMemList ) ;
-    dllist_AddNodeToHead ( ( dllist* ) & _OSMS_->OVT_StaticMemList.osl_List, &osNode->osc_Node ) ;
-    return osms ;
+    Munmap ( mchunk ) ;
 }
 
 void
-OVT_Static_FreeMem ( byte * mem )
+OVT_Static_New ( )
 {
-    OS_Node * osNode = ( OS_Node * ) ( mem - sizeof ( OS_Node ) ) ;
-    dlnode_Remove ( &osNode->osc_Node ) ;
-    Munmap ( mem, osNode->osc_Size ) ;
+    OVT_StaticMemSystem * osms = _OSMS_ = ( OVT_StaticMemSystem * ) _MemChunk_Allocate ( sizeof ( OVT_StaticMemSystem ), MMAP ) ; //_OVT_Static_AllocMem ( sizeof ( OVT_StaticMemSystem ) ) ;
+    MemChunk_Account ( sizeof ( OVT_StaticMemSystem ), MMAP, MEM_ALLOC ) ; // couldn't be accounted before _OSMS_ was created
+    osms->OVT_StaticMemList = _dllist_New ( MMAP ) ;
+    osms->HistorySpace_MemChunkStringList = _dllist_New ( MMAP ) ;
+    OVT_MemSystem * oms = _OMS_ = ( OVT_MemSystem * ) _MemChunk_Allocate ( sizeof ( OVT_MemSystem ), MMAP ) ; //_OVT_Static_AllocMem ( sizeof ( OVT_StaticMemSystem ) ) ;
+    oms->OvtMemChunkList = _dllist_New ( MMAP ) ;
 }
 
 void
-Free_OVT_Static_Mem ( )
+MMAP_Munmap_List ( dllist * list )
 {
-    dlnode * node, *nodeNext ;
-    for ( node = dllist_First ( ( dllist* ) & _OSMS_->OVT_StaticMemList ) ; node ; node = nodeNext )
-    {
-        nodeNext = dlnode_Next ( node ) ;
-        OVT_Static_FreeMem ( ( byte* ) node ) ;
-    }
+    MMAP_Munmap ( ( byte * ) & list->l_List.n_Head, sizeof ( dlnode ) ) ;
+    MMAP_Munmap ( ( byte * ) & list->l_List.n_Tail, sizeof ( dlnode ) ) ;
+    MMAP_Munmap ( ( byte * ) list, sizeof ( dllist ) ) ;
+}
+
+void
+OVT_Static_Delete ( OVT_StaticMemSystem * osms )
+{
+    FreeChunkList ( _OMS_->OvtMemChunkList ) ;
+    FreeChunkList ( osms->OVT_StaticMemList ) ;
+    FreeChunkList ( _OSMS_->HistorySpace_MemChunkStringList ) ;
+    MMAP_Munmap_List ( osms->OVT_StaticMemList ) ;
+    MMAP_Munmap_List ( osms->HistorySpace_MemChunkStringList ) ;
+    MMAP_Munmap_List ( _OMS_->OvtMemChunkList ) ;
+    MMAP_Munmap ( ( byte * ) _OMS_, sizeof ( OVT_MemSystem ) ) ;
+    MMAP_Munmap ( ( byte * ) osms, sizeof ( OVT_StaticMemSystem ) ) ;
 }
 
 void
 OVT_FullRestartCompleteDelete ( )
 {
-    Free_OVT_Static_Mem ( ) ;
-    if ( _O_ && ( _O_->SigSegvs ++ < 2 ) ) _OpenVmTil_Delete ( _O_ ) ;
+    if ( _O_ && ( _O_->SigSegvs ++ < 2 ) ) OpenVmTil_Delete ( _O_ ) ;
+    OVT_Static_Delete ( _OSMS_ ) ;
+    _OMS_ = 0 ;
     _OSMS_ = 0 ;
-    _OS_ = 0 ;
     _O_ = 0 ;
-}
-
-OVT_Static *
-OVT_Static_New ( )
-{
-    OVT_Static * os = 0 ;
-    if ( ! _OSMS_ ) _OSMS_ = OVT_Static_MemSystem_New ( ) ;
-    _OS_ = os = ( OVT_Static * ) Mem_Allocate ( sizeof (OVT_Static ), _STATIC_ ) ;
-    os->HistorySpace_MemChunkStringList = _dllist_New ( OVT_STATIC ) ;
-    os->OvtMemChunkList = _dllist_New ( OVT_STATIC ) ;
-    return os ;
 }
 
 byte *
@@ -188,22 +231,17 @@ Mem_Allocate ( int64 size, uint64 allocType )
         case CONTEXT: return _Allocate ( size, ms->ContextSpace ) ;
         case BUFFER: return _Allocate ( size, ms->BufferSpace ) ;
         case LISP_TEMP: return _Allocate ( size, ms->LispTempSpace ) ;
-            //case LISP_COPY: return _Allocate ( size, ms->LispCopySpace ) ;
         case TEMPORARY: return _Allocate ( size, ms->TempObjectSpace ) ; // used for SourceCode
         case SESSION: return _Allocate ( size, ms->SessionObjectsSpace ) ;
         case COMPILER_TEMP: return _Allocate ( size, ms->CompilerTempObjectSpace ) ;
         case WORD_RECYCLING: return _Allocate ( size, ms->WordRecylingSpace ) ;
 
-        case T_CSL: case DATA_STACK: return _Allocate ( size, ovt->CSLInternalSpace ) ;
+        case T_CSL: case DATA_STACK: return _Allocate ( size, ovt->CSL_InternalSpace ) ;
         case INTERNAL_OBJECT_MEM: return _Allocate ( size, ovt->InternalObjectSpace ) ;
         case OPENVMTIL: return _Allocate ( size, ovt->OpenVmTilSpace ) ;
-        case _STATIC_: case OVT_STATIC: case HISTORY:
-        {
-            if ( allocType == _STATIC_ ) return Mmap ( size ) ;
-            else if ( allocType & ( OVT_STATIC ) ) return OVT_Static_AllocMem ( size ) ; //_OS_->StaticAllocation += size ;
-            else if ( allocType & HISTORY ) _OS_->HistoryAllocation += size ;
-            return mmap_AllocMem ( size ) ;
-        }
+        
+        case MMAP: case _STATIC_: case OVT_STATIC: case HISTORY:  return MMAP_Mmap ( size, allocType ) ; 
+        
         default: CSL_Exception ( MEMORY_ALLOCATION_ERROR, 0, QUIT ) ;
     }
     return 0 ;
@@ -212,7 +250,7 @@ Mem_Allocate ( int64 size, uint64 allocType )
 void *
 sl9_malloc ( int size )
 {
-    return (void*) Mem_Allocate ( size, LISP_TEMP ) ;
+    return ( void* ) Mem_Allocate ( size, LISP_TEMP ) ;
 }
 
 void
@@ -276,7 +314,7 @@ void
 FreeNba_BaNode ( NamedByteArray * nba, dlnode * node )
 {
     ByteArray * ba = Get_BA_Symbol_To_BA ( node ) ;
-    MemChunk* mchunk = ( MemChunk* ) ( ( Symbol * ) node )->S_Value ;
+    MemChunk* mchunk = ( MemChunk* ) ba ; //( ( Symbol * ) node )->S_Value ;
     int64 size = ba->BA_DataSize ; //mchunk->S_ChunkSize ;
     dlnode_Remove ( node ) ; // remove BA_Symbol from nba->NBA_BaList cf. _NamedByteArray_AddNewByteArray
     _Mem_ChunkFree ( mchunk ) ;
@@ -348,7 +386,6 @@ MemorySpace_New ( OpenVmTil * ovt, byte * name )
         MemorySpace_Init ( ms ) ;
         ( ( Symbol* ) ms )->S_Name = name ;
         dllist_AddNodeToHead ( ovt->MemorySpaceList, ( dlnode* ) ms ) ;
-        //if (_CSL_) CSL_Context_PushNew ( _CSL_ ) ;
         _MemorySpace_Do_MemorySpace ( ovt, ms ) ;
     }
     return ms ;
@@ -374,7 +411,6 @@ MemorySpace_Delete ( byte * name )
             _OVT_MemList_FreeNBAMemory ( nba, 0, 1 ) ;
         }
         dlnode_Remove ( ( dlnode * ) ms ) ;
-        //if (_CSL_) CSL_Context_PopDelete ( _CSL_ ) ;
         _MemorySpace_Do_MemorySpace ( _O_, defaultMs ) ;
     }
 }
@@ -743,7 +779,7 @@ OVT_ShowNBAs ( OpenVmTil * ovt, int64 flag )
 }
 
 int64
-_OVT_ShowPermanentMemList ( OpenVmTil * ovt )
+_OVT_CalculateShowMemList ( OpenVmTil * ovt )
 {
     int64 size ;
     if ( ovt )
@@ -751,20 +787,32 @@ _OVT_ShowPermanentMemList ( OpenVmTil * ovt )
         int64 diff ;
         dlnode * node, *nodeNext ;
         if ( ovt->Verbosity > 2 ) printf ( "\nMemChunk List :: " ) ;
-        for ( size = 0, node = dllist_First ( ( dllist* ) _OS_->OvtMemChunkList ) ; node ; node = nodeNext )
+        for ( size = 0, node = dllist_First ( ( dllist* ) _OMS_->OvtMemChunkList ) ; node ; node = nodeNext )
         {
             nodeNext = dlnode_Next ( node ) ;
             if ( ovt->Verbosity > 2 ) MemChunk_Show ( ( MemChunk * ) node ) ;
             size += ( ( MemChunk * ) node )->S_ChunkSize ;
         }
-        diff = _OS_->Mmap_RemainingMemoryAllocated - size ;
+        for ( node = dllist_First ( ( dllist* ) & _OSMS_->HistorySpace_MemChunkStringList ) ; node ; node = nodeNext )
+        {
+            nodeNext = dlnode_Next ( node ) ;
+            if ( ovt->Verbosity > 2 ) MemChunk_Show ( ( MemChunk * ) node ) ;
+            size += ( ( MemChunk * ) node )->S_ChunkSize ;
+        }
+        for ( node = dllist_First ( _OSMS_->OVT_StaticMemList ) ; node ; node = nodeNext )
+        {
+            nodeNext = dlnode_Next ( node ) ;
+            if ( ovt->Verbosity > 2 ) MemChunk_Show ( ( MemChunk * ) node ) ;
+            size += ( ( MemChunk * ) node )->S_ChunkSize ;
+        }
+        diff = _OMS_->RemainingAllocated - size ;
         if ( diff ) //|| ovt->Verbosity > 2 )
         {
-            printf ( "\nTotal Size = %9ld : _OS_->Mmap_RemainingMemoryAllocated = %9ld :: diff = %6ld", size, _OS_->Mmap_RemainingMemoryAllocated, diff ) ;
+            printf ( "\nTotal Size = %9ld : _OMS_->RemainingAllocated = %9ld :: diff = %6ld", size, _OMS_->RemainingAllocated, diff ) ;
+            fflush ( stdout ) ;
         }
         Printf ( "\nNon-Static Mem Allocated      = %9ld", ovt->TotalNbaAccountedMemAllocated ) ;
         //printf ( "\n_OS_->Mmap_RemainingMemoryAllocated                     = %9ld : <=: _OS_->Mmap_RemainingMemoryAllocated", _OS_->Mmap_RemainingMemoryAllocated ) ;
-        fflush ( stdout ) ;
     }
     ovt->PermanentMemListRemainingAccounted = size ;
 
@@ -779,7 +827,7 @@ _OVT_CalculateAndShow_TotalNbaAccountedMemAllocated ( OpenVmTil * ovt, Boolean s
         dlnode * node, * nextNode, *msNode, *nextMsNode ;
         NamedByteArray * nba ;
         MemorySpace * ms ;
-        Boolean flag = 0 ;
+        //Boolean flag = 0 ;
         ovt->TotalNbaAccountedMemRemaining = 0 ;
         ovt->TotalNbaAccountedMemAllocated = 0 ;
         if ( ovt && ovt->MemorySpace0 )
@@ -796,18 +844,15 @@ _OVT_CalculateAndShow_TotalNbaAccountedMemAllocated ( OpenVmTil * ovt, Boolean s
                     ovt->TotalNbaAccountedMemAllocated += nba->TotalAllocSize ;
                     ovt->TotalNbaAccountedMemRemaining += nba->MemRemaining ;
                 }
-                if ( ! flag ++ )
+                for ( node = dllist_First ( ( dllist* ) ovt->NBAs ) ; node ; node = nextNode )// nb. NBAs is the NBA Symbol list
                 {
-                    for ( node = dllist_First ( ( dllist* ) & ovt->NBAs ) ; node ; node = nextNode )// nb. NBAs is the NBA Symbol list
+                    nextNode = dlnode_Next ( node ) ;
+                    nba = ( NBA* ) Get_NbaSymbolNode_To_NBA ( node ) ;
+                    if ( nba ) // ?? should not need this
                     {
-                        nextNode = dlnode_Next ( node ) ;
-                        nba = ( NBA* ) Get_NbaSymbolNode_To_NBA ( node ) ;
-                        if ( nba ) // ?? should not need this
-                        {
-                            NBA_AccountRemainingAndShow ( nba, showFlag ) ;
-                            ovt->TotalNbaAccountedMemAllocated += nba->TotalAllocSize ;
-                            ovt->TotalNbaAccountedMemRemaining += nba->MemRemaining ;
-                        }
+                        NBA_AccountRemainingAndShow ( nba, showFlag ) ;
+                        ovt->TotalNbaAccountedMemAllocated += nba->TotalAllocSize ;
+                        ovt->TotalNbaAccountedMemRemaining += nba->MemRemaining ;
                     }
                 }
             }
@@ -836,11 +881,11 @@ _OVT_ShowMemoryAllocated ( OpenVmTil * ovt )
     Boolean vf = ( ovt->Verbosity > 1 ) ;
     if ( ! vf ) Printf ( c_gu ( "\nIncrease the verbosity setting to 2 or more for more info here. ( Eg. : verbosity 2 = )" ) ) ;
     OVT_CalculateAndShow_TotalNbaAccountedMemAllocated ( ovt, 1 ) ;
-    _OVT_ShowPermanentMemList ( ovt ) ;
-    int64 leak = ovt->PermanentMemListRemainingAccounted - ( _OS_->TotalMemAllocated - _OS_->TotalMemFreed ) ; //- _OS_->HistoryAllocation ; //sizeof (OVT_Static ) ;
+    _OVT_CalculateShowMemList ( ovt ) ;
+    int64 leak = abs ( ovt->PermanentMemListRemainingAccounted - _OMS_->RemainingAllocated ) ; //( _OMS_->Allocated - _OMS_->Freed ) ) ; //- _OS_->HistoryAllocation ; //sizeof (OVT_Static ) ;
     //int64 leak = ovt->PermanentMemListRemainingAccounted - _OSMS_->OVT_MmapAllocated - (_OS_->TotalMemAllocated - _OS_->TotalMemFreed ) - _OS_->HistoryAllocation ; //sizeof (OVT_Static ) ;
     //int64 leak = (_OSMS_->OVT_MmapAllocated - ovt->PermanentMemListRemainingAccounted) - (_OS_->TotalMemAllocated - _OS_->TotalMemFreed ) - _OS_->HistoryAllocation ; //sizeof (OVT_Static ) ;
-    int64 memDiff2 = _OS_->Mmap_RemainingMemoryAllocated - ovt->PermanentMemListRemainingAccounted ;
+    int64 memDiff2 = _OMS_->RemainingAllocated - ovt->PermanentMemListRemainingAccounted ;
     byte * memDiff2s = ( byte* ) "\nCurrent Unaccounted Diff (leak?) = %9d : <=: _OS_->Mmap_RemainingMemoryAllocated - ovt->PermanentMemListRemainingAccounted" ;
     byte * leaks = ( byte* ) "\nleak?                            = %9d : <=  ( mmap_TotalMemAllocated - mmap_TotalMemFreed ) - ( _OS_->TotalMemAllocated - _OS_->TotalMemFreed ) - _OS_->HistoryAllocation -_OS_->StaticAllocation" ;
     if ( memDiff2 ) Printf ( c_ad ( memDiff2s ), memDiff2 ) ;
@@ -852,15 +897,15 @@ _OVT_ShowMemoryAllocated ( OpenVmTil * ovt )
         Printf ( "\nTotalNbaAccountedMemAllocated      = %9d : <=: ovt->TotalNbaAccountedMemAllocated", ovt->TotalNbaAccountedMemAllocated ) ;
         Printf ( "\nMem Used - Categorized  = %9d : <=: ovt->TotalNbaAccountedMemAllocated - ovt->TotalNbaAccountedMemRemaining", ovt->TotalNbaAccountedMemAllocated - ovt->TotalNbaAccountedMemRemaining ) ; //+ ovt->UnaccountedMem ) ) ;
         Printf ( "\nTotalNbaAccountedMemRemaining      = %9d : <=: ovt->TotalNbaAccountedMemRemaining", ovt->TotalNbaAccountedMemRemaining ) ;
-        Printf ( "\nMmap_RemainingMemoryAllocated      = %9d : <=: _OS_->Mmap_RemainingMemoryAllocated", _OS_->Mmap_RemainingMemoryAllocated ) ;
+        Printf ( "\nMmap_RemainingMemoryAllocated      = %9d : <=: _OS_->Mmap_RemainingMemoryAllocated", _OMS_->RemainingAllocated ) ;
         Printf ( "\nPermanentMemListRemainingAccounted = %9d : <=: ovt->PermanentMemListRemainingAccounted", ovt->PermanentMemListRemainingAccounted ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nTotal Mem Remaining = %9d : <=: _OS_->TotalMemAllocated - _OS_->TotalMemFreed", _OS_->TotalMemAllocated - _OS_->TotalMemFreed ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nTotal Mem Allocated = %9d : <=: _OS_->TotalMemAllocated", _OS_->TotalMemAllocated ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nTotal Mem Freed     = %9d : <=: _OS_->TotalMemFreed", _OS_->TotalMemFreed ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nTotal Mem Remaining = %9d : <=: _OS_->TotalMemAllocated - _OS_->TotalMemFreed", _OS_->TotalMemAllocated - _OS_->TotalMemFreed ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nOVT_MmapAllocated   = %9d", _OSMS_->OVT_MmapAllocated ) ;
+        Printf ( "\nTotal Mem Remaining = %9d : <=: _OS_->TotalMemAllocated - _OS_->TotalMemFreed", _OMS_->Allocated - _OMS_->Freed ) ; //+ ovt->UnaccountedMem ) ) ;
+        Printf ( "\nTotal Mem Allocated = %9d : <=: _OS_->TotalMemAllocated", _OSMS_->Static_Allocated ) ; //+ ovt->UnaccountedMem ) ) ;
+        Printf ( "\nTotal Mem Freed     = %9d : <=: _OS_->TotalMemFreed", _OMS_->Freed ) ; //+ ovt->UnaccountedMem ) ) ;
+        Printf ( "\nTotal Mem Remaining = %9d : <=: _OS_->TotalMemAllocated - _OS_->TotalMemFreed", _OMS_->Allocated - _OMS_->Freed ) ; //+ ovt->UnaccountedMem ) ) ;
+        Printf ( "\nOVT_MmapAllocated   = %9d", _OMS_->Allocated ) ;
     }
-    Printf ( "\nHistoryAllocation             = %9d", _OS_->HistoryAllocation ) ;
+    Printf ( "\nHistoryAllocation             = %9d", _OSMS_->HistoryAllocated ) ;
     Printf ( "\nTotal Memory leaks            = %9d", leak ) ;
 
     Printf ( "\nNBA ReAllocations             = %9d", _O_->ReAllocations ) ;
@@ -962,3 +1007,73 @@ DLList_Recycle_NamespaceList ( dllist * list )
     dllist_Map ( list, ( MapFunction0 ) _CheckRecycleWord ) ;
 }
 
+// OVT_StaticMemList : is used by OVT_Static_New for History nodes and _OS_->OvtMemChunkList which is used Mem_ChunkAllocate and HISTORY allocs
+// _OSMS_->OVT_StaticMemList.osl_List is only used by 
+//    os->HistorySpace_MemChunkStringList = _dllist_New ( OVT_STATIC ) ;
+//    os->OvtMemChunkList = _dllist_New ( OVT_STATIC ) ;
+
+// use _OVT_Static_AllocMem before OSMS is initialized
+#if 0
+
+void
+OVT_Static_AddAndAccount ( OS_Node * osNode )
+{
+    dllist_AddNodeToHead ( ( dllist* ) & _OMS_->OVT_StaticMemList.osl_List, ( dlnode* ) osNode ) ;
+    _OMS_->Static_MmapAllocated += osNode->osc_Size ; //size ;
+}
+
+// use _OVT_Static_AllocMem after OSMS is initialized
+
+OS_Node *
+_OVT_Static_AllocMem ( int64 size )
+{
+    OS_Node * osNode = ( OS_Node * ) _Mmap ( size += sizeof ( OS_Node ) ) ; //mmap_AllocMem ( size += sizeof ( OS_Node ) ) ;
+    osNode->osc_Size = size ;
+    osNode->osc_b_Chunk = ( ( byte* ) osNode ) + sizeof ( OS_Node ) ;
+    return osNode ;
+}
+
+byte *
+OVT_Static_AllocMem ( int64 size )
+{
+    OS_Node * osNode = _OVT_Static_AllocMem ( size ) ;
+    OVT_Static_AddAndAccount ( osNode ) ;
+    byte *mem = osNode->osc_b_Chunk ;
+    return mem ;
+}
+
+void
+OS_Node_Free ( OS_Node * osNode )
+{
+    dlnode_Remove ( &osNode->osc_Node ) ;
+    Munmap ( osNode->osc_b_Chunk ) ;
+}
+
+void
+Free_OS_Node_List ( dllist * lst )
+{
+    dlnode * node, *nodeNext ;
+    for ( node = dllist_First ( lst ) ; node ; node = nodeNext )
+    {
+        nodeNext = dlnode_Next ( node ) ;
+        OS_Node_Free ( ( OS_Node * ) node ) ;
+    }
+}
+// OVT_StaticMemSystem_New : We mmap a OS_Node for the OVT_StaticMemSystem and then add that
+// node to a list in OVT_StaticMemSystem (_OSMS_->OVT_StaticMemList.osl_List).
+
+OVT_MemSystem *
+OVT_MemSystem_New ( )
+{
+    OVT_MemSystem * oms = _OMS_ = ( OVT_MemSystem * ) MemChunk_AllocateAdd ( sizeof ( OVT_MemSystem ), _STATIC_ ) ; //_OVT_Static_AllocMem ( sizeof ( OVT_StaticMemSystem ) ) ;
+    //OVT_MemSystem * osms = _OMS_ = ( OVT_MemSystem * ) mchunk->Data ;
+    _dllist_Init ( ( dllist* ) & oms->OvtMemChunkList ) ; //, &osl->n_Head, &osl->n_Tail ) ;
+    //OVT_Static_AddAndAccount ( osNode ) ;
+    dllist_AddNodeToHead ( ( dllist* ) & _OSMS_->OVT_StaticMemList, ( dlnode* ) oms ) ;
+    return oms ;
+}
+
+// OVT_Static
+
+
+#endif

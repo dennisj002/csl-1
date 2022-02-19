@@ -127,6 +127,7 @@ _CSL_EndBlock1 ( BlockInfo * bi )
     Compiler * compiler = _Context_->Compiler0 ;
     if ( ! Compiler_BlockLevel ( compiler ) ) CSL_FinalizeBlocks ( bi ) ;
     //compiler->LHS_Word = 0 ;
+    Compiler_WordStack_SCHCPUSCA( 0, 0 )  ;
     _Compile_Return ( ) ;
     DataStack_Push ( ( int64 ) bi->bp_First ) ;
     bi->bp_Last = Here ;

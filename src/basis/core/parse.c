@@ -149,7 +149,7 @@ _Lexer_ParseDecimal ( Lexer * lexer, byte * token )
         sscanf ( ( char* ) token, LISP_DECIMAL_FRMT, ( uint64* ) & lexer->Literal ) )
     {
         // ??? this need to be fixed : small integers are not necessarily to be considered as less than 8 bytes ???
-        if ( lexer->Literal ) // promote '0 to 8 bytes // 
+        //if ( lexer->Literal ) // promote '0 to 8 bytes //  '0' ?
         {
             if ( abs ( lexer->Literal ) < 256 )
             {

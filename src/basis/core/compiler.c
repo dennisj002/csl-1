@@ -263,7 +263,6 @@ Compiler_Init ( Compiler * compiler, uint64 state )
     compiler->LocalsFrameSize = 0 ;
     compiler->AccumulatedOffsetPointer = 0 ;
     compiler->ReturnVariableWord = 0 ;
-    compiler->ReturnLParenVariableWord = 0 ;
     compiler->ReturnLParenOperandWord = 0 ;
     compiler->Current_Word_New = 0 ;
     CSL_NonCompilingNs_Clear ( compiler ) ; // for special syntax : we have a namespace but not while compiling

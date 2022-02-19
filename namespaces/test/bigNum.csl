@@ -133,14 +133,13 @@ lcOn //(lcDbOn)
 (define fibc2 ( lambda ( n ) ( ifElse ( < n 2 ) n ( + ( fibc2 ( - n 1 ) ) ( fibc2 ( - n 2 ) ) ) ) ) )
 pwi fibc2 
 (fibc2 20)
-#if 0    
-(define ( fibc21  n ) ( if ( < n 2 ) n ( + ( fibc21 ( - n 1 ) ) ( fibc21 ( - n 2 ) ) ) ) )
+#if 0
+(define ( fibc21  n ) ( if ( < n 2 ) n ( + ( fibc21 ( - n 1 ) ) ( fibc21 ( - n 2 ) ) ) ) ) // recursive form ; very slow
 pwi fibc21 
 (fibc21 20)
-//pause
 #endif
+//pause
     
-//(ld:) 
 (define fibbc (lambda (n ) (ifElse (< n 2) n (+ (fibbc (- n 1)) (fibbc (- n 2))))))
 // tick fibbc find wdiss
 (fibbc 20)
@@ -250,12 +249,15 @@ sp
 (swch2 3 4) 
 (define x (swch 8 15) )  ( - @x) 
 (define x (swch 8 19) )  ( - @x) 
-(car ( 7 8 ) ) ( car 7 8 ) ( cdr ( 6 7 ) ) ( cdr 6 7 )
+(car ( 7 8 ) ) ( car 7 8 ) ( cdr ( 6 7 ) ) ( cdr 7 6 )
 sp
 
 lcOff
 Root.List
-_((lambda ( a b) (+ a b)) 3 4 ) dupList eval printList printList s lispOff
+nl
+_((lambda ( a b) (+ a b)) 3 4 ) dupList eval printList nl printList nl //pause
+nl _((lambda ( a b) (+ a b)) 3 4 ) dupList printList eval nl printList nl //pause
+nl _((lambda ( a b) (+ a b)) 3 4 ) eval printList nl //pause
 : bexp3 ( n ) { n @ 1 > } { n @ n @ -- bexp3 *  } { 1 } ifElse ;
 'bexp3 find wdiss 7 bexp3 p sp
 c_syntaxOn

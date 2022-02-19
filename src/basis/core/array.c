@@ -46,10 +46,10 @@ ByteArray_Init ( ByteArray * ba, int64 size, uint64 type )
 }
 
 ByteArray *
-ByteArray_AllocateNew ( int64 size, uint64 type )
+ByteArray_AllocateNew ( int64 size, uint64 allocType )
 {
-    ByteArray * ba = ( ByteArray* ) Mem_ChunkAllocate ( size + sizeof ( ByteArray ), type ) ;
-    ByteArray_Init ( ba, size, type ) ;
+    ByteArray * ba = ( ByteArray* ) MemChunk_AllocateAdd ( size + sizeof ( ByteArray ), allocType ) ;
+    ByteArray_Init ( ba, size, allocType ) ;
     return ba ;
 }
 
@@ -205,7 +205,7 @@ _NamedByteArray_AddNewByteArray ( NamedByteArray *nba, int64 size )
 NamedByteArray *
 _NamedByteArray_Allocate ( int64 allocType )
 {
-    NamedByteArray * nba = ( NamedByteArray* ) Mem_ChunkAllocate ( sizeof ( NamedByteArray ), allocType ) ;
+    NamedByteArray * nba = ( NamedByteArray* ) MemChunk_AllocateAdd ( sizeof ( NamedByteArray ), allocType ) ;
     return nba ;
 }
 
