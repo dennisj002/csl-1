@@ -515,4 +515,5 @@ d: : hi 1 2 + p ; hi
 #endif
 
 //stringMacrosOff
+//mem
 2 + 7 assertStkChk //d: // stack checking 

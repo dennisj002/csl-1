@@ -37,6 +37,7 @@ ByteArray *
 ByteArray_Init ( ByteArray * ba, int64 size, uint64 type )
 {
     // we want to keep track of how much data for each type separate from MemChunk accounting
+    ba->BA_MemChunk.mc_AllocType = type ; 
     ba->BA_DataSize = size ;
     ba->BA_AllocSize = size + sizeof (ByteArray ) ;
     ba->BA_AAttribute = type ;
@@ -48,7 +49,7 @@ ByteArray_Init ( ByteArray * ba, int64 size, uint64 type )
 ByteArray *
 ByteArray_AllocateNew ( int64 size, uint64 allocType )
 {
-    ByteArray * ba = ( ByteArray* ) MemChunk_AllocateAdd ( size + sizeof ( ByteArray ), allocType ) ;
+    ByteArray * ba = ( ByteArray* ) MemChunk_AllocateListAdd ( size + sizeof ( ByteArray ), allocType ) ;
     ByteArray_Init ( ba, size, allocType ) ;
     return ba ;
 }
@@ -205,7 +206,7 @@ _NamedByteArray_AddNewByteArray ( NamedByteArray *nba, int64 size )
 NamedByteArray *
 _NamedByteArray_Allocate ( int64 allocType )
 {
-    NamedByteArray * nba = ( NamedByteArray* ) MemChunk_AllocateAdd ( sizeof ( NamedByteArray ), allocType ) ;
+    NamedByteArray * nba = ( NamedByteArray* ) MemChunk_AllocateListAdd ( sizeof ( NamedByteArray ), allocType ) ;
     return nba ;
 }
 
@@ -261,5 +262,179 @@ NamedByteArray_CheckAddress ( NamedByteArray * nba, byte * address )
         //if ( ( address >= ( byte* ) ba->BA_Data ) && ( address <= ( byte* ) ba->bp_Last ) ) return true ; // ?!? not quite accurate
     }
     return false ;
+}
+
+ByteArray *
+_ByteArray_AppendSpace_MakeSure ( ByteArray * ba, int64 size ) // size in bytes
+{
+    NamedByteArray * nba = ba->OurNBA ;
+    if ( nba )
+    {
+        while ( ba->MemRemaining < size )
+        {
+            int64 largestRemaining = 0 ;
+            // check the other bas in the nba list to see if any have enough remaining
+            {
+                dlnode * node, *nodeNext ;
+                for ( node = dllist_First ( ( dllist* ) & nba->NBA_BaList ) ; node ; node = nodeNext )
+                {
+                    if ( node == nodeNext ) break ; // ?? TODO : should need this
+                    nodeNext = dlnode_Next ( node ) ;
+                    ba = Get_BA_Symbol_To_BA ( node ) ;
+                    if ( ba )
+                    {
+                        if ( ba->MemRemaining > largestRemaining ) largestRemaining = ba->MemRemaining ;
+                        if ( ba->MemRemaining >= size ) goto done ;
+                    }
+                }
+            }
+            _O_->ReAllocations ++ ;
+#if 0     // 15 * M       
+            nba->NBA_DataSize = nba->NBA_DataSize > ( 100 * K ) ? nba->NBA_DataSize : ( 100 * K ) ;
+            nba->NBA_DataSize *= ( ++ nba->Allocations ) ;
+            nba->NBA_DataSize += size ;
+#elif 0  // 14 * M           
+            nba->NBA_DataSize += ( ( ( ++ nba->Allocations ) * ( 100 * K ) ) + size ) ;
+#elif 0  // 16 * M          
+            nba->NBA_DataSize = ( ( ++ nba->Allocations ) * ( nba->NBA_DataSize ? nba->NBA_DataSize : ( 100 * K ) ) + size ) ;
+#else   // 13 * M 
+            size = ( size > ( 100 * K ) ) ? size : ( 100 * K ) ;
+            nba->NBA_DataSize += ( ( ( ++ nba->Allocations ) * size ) + ( 100 * K ) ) ;
+            //nba->NBA_DataSize =  ((nba->NBA_DataSize > (100 * K) ? nba->NBA_DataSize : (100 * K) ) * (++nba->Allocations) ) + size ;
+#endif            
+            if ( _O_->Verbosity > 1 )
+                NBA_PrintInfo ( nba ) ;
+            ba = _NamedByteArray_AddNewByteArray ( nba, nba->NBA_DataSize ) ;
+        }
+    }
+    else Error_Abort ( "_ByteArray_AppendSpace_MakeSure", ( byte* ) "\n_ByteArray_AppendSpace_MakeSure : no nba?!\n" ) ;
+done:
+    nba->ba_CurrentByteArray = ba ;
+    return ba ;
+}
+
+//macros.h :  _Allocate( size, nba ) _ByteArray_AppendSpace ( nba->ba_CurrentByteArray, size ) 
+
+byte *
+_ByteArray_AppendSpace ( ByteArray * ba, int64 size ) // size in bytes
+{
+    while ( ba->MemRemaining < size )
+    {
+        ba = _ByteArray_AppendSpace_MakeSure ( ba, size ) ;
+    }
+    ba->StartIndex = ba->EndIndex ; // move index to end of the last append
+    ba->EndIndex += size ;
+    if ( ba->OurNBA ) ba->OurNBA->MemRemaining -= size ; //nb. debugger->StepInstructionBA doesn't have an nba
+    ba->MemRemaining -= size ;
+    return ba->StartIndex ;
+}
+
+NamedByteArray *
+NBA_MemSpace_New ( MemorySpace * memSpace, byte * name, int64 size, int64 allocType )
+{
+    NamedByteArray *nba = NamedByteArray_New ( name, size, allocType ) ;
+    dllist_AddNodeToHead ( memSpace->NBAs, ( dlnode* ) & nba->NBA_Symbol ) ;
+    return nba ;
+}
+
+NamedByteArray *
+NBA_OvtNew ( byte * name, int64 size, int64 allocType )
+{
+    OpenVmTil * ovt = _O_ ;
+    NamedByteArray *nba = NamedByteArray_New ( name, size, allocType ) ;
+    dllist_AddNodeToHead ( ovt->NBAs, ( dlnode* ) & nba->NBA_Symbol ) ;
+    return nba ;
+}
+
+void
+FreeNba_BaNode ( NamedByteArray * nba, dlnode * node )
+{
+    ByteArray * ba = Get_BA_Symbol_To_BA ( node ) ;
+    MemChunk* mchunk = ( MemChunk* ) ba ; //( ( Symbol * ) node )->S_Value ;
+    int64 size = ba->BA_DataSize ; //mchunk->S_ChunkSize ;
+    dlnode_Remove ( node ) ; // remove BA_Symbol from nba->NBA_BaList cf. _NamedByteArray_AddNewByteArray
+    _Mem_ChunkFree ( mchunk ) ;
+    nba->MemRemaining -= size ;
+    nba->MemAllocated -= size ;
+    nba->TotalAllocSize -= size ;
+}
+
+void
+FreeNba_BaList ( NamedByteArray * nba )
+{
+    dllist * list = & nba->NBA_BaList ;
+    dlnode * node, *nodeNext ;
+    for ( node = dllist_First ( ( dllist* ) list ) ; node ; node = nodeNext )
+    {
+        nodeNext = dlnode_Next ( node ) ;
+        FreeNba_BaNode ( nba, node ) ;
+    }
+}
+
+void
+OVT_FreeTempMem ( )
+{
+    OVT_MemListFree_CompilerTempObjects ( ) ;
+    OVT_MemListFree_TempObjects ( ) ;
+    OVT_MemListFree_Objects ( ) ;
+    OVT_MemListFree_LispTemp ( ) ;
+}
+
+NamedByteArray *
+_OVT_Find_NBA ( byte * name )
+{
+    // needs a Word_Find that can be called before everything is initialized
+    Symbol * s = DLList_FindName_InOneNamespaceList ( _O_->MemorySpace0->NBAs, ( byte * ) name ) ;
+    if ( s ) return Get_NbaSymbolNode_To_NBA ( s ) ;
+    else return 0 ;
+}
+
+// fuzzy still but haven't yet needed to adjust this one
+
+void
+_OVT_MemList_FreeNBAMemory ( NamedByteArray *nba, uint64 moreThan, int64 always )
+{
+    if ( nba && ( always || ( nba->MemAllocated > ( nba->MemInitial + moreThan ) ) ) ) // this logic is fuzzy ?? what is wanted is a way to fine tune mem allocation 
+    {
+        dlnode * node, *nodeNext ;
+        int64 size, flag ;
+        for ( flag = 0, node = dllist_First ( ( dllist* ) & nba->NBA_BaList ) ; node ; node = nodeNext )
+        {
+            nodeNext = dlnode_Next ( node ) ;
+            ByteArray * ba = Get_BA_Symbol_To_BA ( node ) ;
+            if ( ba )
+            {
+                FreeNba_BaNode ( nba, node ) ;
+                nba->NumberOfByteArrays -- ;
+                if ( ! nodeNext )
+                {
+                    nba->MemAllocated = 0 ;
+                    nba->MemRemaining = 0 ;
+                    nba->NBA_DataSize = nba->OriginalSize ;
+                    _NamedByteArray_AddNewByteArray ( nba, nba->OriginalSize ) ;
+                }
+            }
+        }
+        nba->InitFreedRandMarker = rand ( ) ;
+    }
+}
+
+void
+NamedByteArray_Delete ( NamedByteArray * nba, Boolean reinitFlag )
+{
+    ByteArray * ba ;
+    dlnode * node, *nodeNext ;
+    if ( nba )
+    {
+        dlnode_Remove ( ( dlnode* ) & nba->NBA_Symbol ) ;
+        for ( node = dllist_First ( ( dllist* ) & nba->NBA_BaList ) ; node ; node = nodeNext )
+        {
+            nodeNext = dlnode_Next ( node ) ;
+            ba = Get_BA_Symbol_To_BA ( node ) ;
+            _Mem_ChunkFree ( ( MemChunk * ) ba ) ;
+        }
+        if ( ! reinitFlag ) _Mem_ChunkFree ( ( MemChunk * ) nba ) ; 
+        else _NamedByteArray_Init ( nba, nba->NBA_MemChunk.mc_Name, nba->NBA_DataSize, nba->NBA_AAttribute ) ;
+    }
 }
 

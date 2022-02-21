@@ -4,8 +4,8 @@
 HistoryStringNode *
 HistoryStringNode_New ( byte * hstring )
 {
-    HistoryStringNode * hsn = ( HistoryStringNode * ) MemChunk_AllocateAdd ( sizeof ( HistoryStringNode ), HISTORY ) ; //MemChunk_DataAllocate ( int64 size, int64 allocType )
-    byte* sname = String_New ( hstring, HISTORY ) ;
+    HistoryStringNode * hsn = ( HistoryStringNode * ) MemChunk_AllocateListAdd ( sizeof ( HistoryStringNode ), HISTORY ) ; //MemChunk_DataAllocate ( int64 size, int64 allocType )
+    byte* sname = String_New ( hstring, STATIC ) ;
     hsn->mc_Name = sname ;
     return hsn ;
 }
@@ -81,20 +81,9 @@ OpenVmTil_AddStringToHistoryOff ( )
     SetState ( _Context_->System0, ADD_READLINE_TO_HISTORY, false ) ;
 }
 
-#if 0
-
-void
-History_Init ( )
-{
-    //    _OS_->HistorySpace_MemChunkStringList = _dllist_New ( OVT_STATIC ) ;
-    &_OSMS_->HistorySpace_MemChunkStringList = _dllist_New ( HISTORY ) ;
-}
-#endif
-
 void
 History_Delete ( )
 {
     FreeChunkList ( _OSMS_->HistorySpace_MemChunkStringList ) ;
     _dllist_Init ( _OSMS_->HistorySpace_MemChunkStringList ) ;
-    _OSMS_->HistoryAllocated = 0 ;
 }

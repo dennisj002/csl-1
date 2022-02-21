@@ -24,6 +24,8 @@ extern Boolean cli, lf ;
 extern int lic, csl_returnValue, lv ; // last value
 extern FILE * f ;
 
+// memspace.c
+extern int64 mmaped ;
 #endif
 
 

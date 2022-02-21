@@ -1,6 +1,6 @@
 
 #include "../include/csl.h"
-#define VERSION ((byte*) "0.920.460" ) 
+#define VERSION ((byte*) "0.920.530" ) 
 
 // inspired by :: Foundations of Mathematical Logic [Foml] by Haskell Curry
 // CT/Oop (Category Theory, Object Oriented Programming, Type Theory), 
@@ -32,8 +32,8 @@ void
 _OpenVmTil_Init ( OpenVmTil * ovt, int64 resetHistory )
 {
     ovt->MemorySpace0 = MemorySpace_New ( ovt, "DefaultMemorySpace" ) ;
-    ovt->CSL_InternalSpace = MemorySpace_NBA_OvtNew ( ( byte* ) "CSLInternalSpace", ovt->CSLSize, T_CSL ) ;
-    ovt->InternalObjectSpace = MemorySpace_NBA_OvtNew ( ( byte* ) "InternalObjectSpace", ovt->InternalObjectsSize, INTERNAL_OBJECT_MEM ) ; // used in _DObject_ValueDefinition_Init
+    ovt->CSL_InternalSpace = NBA_OvtNew ( ( byte* ) "CSLInternalSpace", ovt->CSLSize, T_CSL ) ;
+    ovt->InternalObjectSpace = NBA_OvtNew ( ( byte* ) "InternalObjectSpace", ovt->InternalObjectsSize, INTERNAL_OBJECT_MEM ) ; // used in _DObject_ValueDefinition_Init
     ovt->BufferList = _dllist_New ( OPENVMTIL ) ; // put it here to minimize allocating chunks for each node and the list
     ovt->RecycledWordList = _dllist_New ( OPENVMTIL ) ; // put it here to minimize allocating chunks for each node and the list
     ovt->RecycledOptInfoList = _dllist_New ( OPENVMTIL ) ; // put it here to minimize allocating chunks for each node and the list

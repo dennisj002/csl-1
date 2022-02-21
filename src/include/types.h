@@ -87,16 +87,16 @@ typedef Object * ( *Primop ) ( Object * ) ;
 
 typedef struct _node
 {
-    union
+    struct
     {
-        struct
+        union
         {
             struct _node * n_After ;
-            struct _node * n_Before ;
-        } ;
-        struct
-        {
             struct _node * n_Head ;
+        } ;
+        union
+        {
+            struct _node * n_Before ;
             struct _node * n_Tail ;
         } ;
     } ;
@@ -183,6 +183,7 @@ typedef int64( *MapFunction3 ) ( dlnode *, int64, int64, int64 ) ;
 typedef void ( *MapFunction4 ) ( dlnode *, int64, int64, int64, int64 ) ;
 typedef void ( *MapFunction5 ) ( dlnode *, int64, int64, int64, int64, int64 ) ;
 typedef Boolean( *BoolMapFunction_1 ) ( dlnode * ) ;
+#if 0
 typedef struct //_MemChunk
 {
     DLNode mc_Node ;
@@ -193,6 +194,7 @@ typedef struct //_MemChunk
     byte * mc_Name ;
     byte * mc_Data ;
 } MemChunk, HistoryStringNode ;
+#endif
 typedef struct _Identifier // _Symbol
 {
     DLNode S_Node ;
@@ -231,7 +233,7 @@ typedef struct _Identifier // _Symbol
         byte * TextMacroValue ;
     } ;
     struct _WordData * W_WordData ;
-} Identifier, ID, Word, Namespace, Vocabulary, Class, DynamicObject, DObject, ListObject, Symbol, Buffer, CaseNode ;
+} Identifier, ID, Word, Namespace, Vocabulary, Class, DynamicObject, DObject, ListObject, Symbol, Buffer, CaseNode, MemChunk, HistoryStringNode  ;
 #define S_Car S_Node.n_DLNode.n_After
 #define S_Cdr S_Node.n_DLNode.n_Before
 #define S_After S_Cdr
@@ -303,6 +305,17 @@ typedef struct _Identifier // _Symbol
 #define B_CAttribute S_MorphismAttributes
 #define B_Size Size //S_Size
 #define B_Data Data //S_pb_Data2
+
+// MemChunk, HistoryStringNode 
+#define mc_Node S_Node
+//#define mc_Size 
+#define mc_Type S_ObjectAttributes
+#define mc_unmap  S_Node.n_DLNode.n_unmap
+#define  mc_ChunkSize  CodeSize // S_ChunkSize is the total size of the chunk including any prepended accounting structure in that total
+#define mc_AllocType  S_WAllocType
+#define mc_Name S_Name
+#define mc_Data  S_pb_Data2
+#define mc_TotalAllocSize 
 
 typedef int64( *cMapFunction_1 ) ( Symbol * ) ;
 typedef ListObject* ( *ListFunction0 )( ) ;
@@ -479,7 +492,7 @@ typedef struct
     byte * bp_Last ;
     byte * BA_Data ;
 } ByteArray ;
-#define BA_AllocSize BA_MemChunk.mc_Size
+#define BA_AllocSize BA_MemChunk.mc_ChunkSize
 //#define BA_CAttribute BA_MemChunk.S_MorphismAttributes
 #define BA_AAttribute BA_MemChunk.mc_AllocType
 typedef struct NamedByteArray
@@ -922,28 +935,11 @@ typedef struct _CSL
 typedef struct
 {
     MemChunk MS_MemChunk ;
-    // static buffers
-    // short term memory
-    NamedByteArray * SessionObjectsSpace ; // until reset
-    //NamedByteArray * SessionCodeSpace ; // until reset
-    NamedByteArray * TempObjectSpace ; // lasts for one line
-    NamedByteArray * CompilerTempObjectSpace ; // lasts for compile of one word
-    NamedByteArray * ContextSpace ;
-    NamedByteArray * WordRecylingSpace ;
-    NamedByteArray * LispTempSpace ;
-    NamedByteArray * LispCopySpace ;
-    // quasi long term
-    NamedByteArray * BufferSpace ;
-    // long term memory
-    NamedByteArray * CodeSpace ;
-    NamedByteArray * ObjectSpace ;
-    NamedByteArray * LispSpace ;
-    NamedByteArray * DictionarySpace ;
-    NamedByteArray * StringSpace ;
+    NamedByteArray * SessionObjectsSpace, * TempObjectSpace, * CompilerTempObjectSpace, 
+            * ContextSpace, * WordRecylingSpace, * LispTempSpace, * LispCopySpace,
+            * BufferSpace, * CodeSpace, * ObjectSpace, * LispSpace, * DictionarySpace, * StringSpace ;
 
     dllist *NBAs ;
-    //dlnode NBAsHeadNode ;
-    //dlnode NBAsTailNode ;
     int64 RecycledWordCount, WordsInRecycling ;
     Namespace * Namespaces, * InNamespace, *SavedCslNamespaces ;
 } MemorySpace ;
@@ -992,7 +988,7 @@ typedef struct
     Colors *Current, Default, Alert, Debug, Notice, User ;
 
     //dlnode PML_HeadNode, PML_TailNode ;
-    int64 PermanentMemListRemainingAccounted, TotalNbaAccountedMemRemaining, TotalNbaAccountedMemAllocated, TotalMemSizeTarget ;
+    int64 TotalRemainingAccounted, TotalNbaAccountedMemRemaining, TotalNbaAccountedMemAllocated, TotalMemSizeTarget ;
     //int64 Mmap_RemainingMemoryAllocated, OVT_InitialStaticMemory, TotalMemFreed, TotalMemAllocated, NumberOfByteArrays ;
 
     MemorySpace * MemorySpace0 ;
@@ -1079,11 +1075,9 @@ typedef struct typeStatusInfo
 typedef struct
 {
     MemChunk OS_MemChunk ;
-    dllist * OVT_StaticMemList ;
-    int64 Static_Allocated, Static_Freed, Static_RemainingAllocated ;
-    int64 HistoryAllocated ; 
-    dllist * HistorySpace_MemChunkStringList ; 
-    //sigjmp_buf JmpBuf0 ;
+    NBA * StaticMemSpace ;
+    dllist * OVT_StaticMemList, * HistorySpace_MemChunkStringList ; 
+    int64 Allocated, Freed, RemainingAllocated ;
 } OVT_StaticMemSystem, OSMS ;
 typedef struct
 {

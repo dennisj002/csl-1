@@ -89,10 +89,9 @@ OVT_ShowNBAs ( OpenVmTil * ovt, int64 flag )
 int64
 _OVT_CalculateShowMemList ( OpenVmTil * ovt )
 {
-    int64 size ;
+    int64 size, diff ;
     if ( ovt )
     {
-        int64 diff ;
         dlnode * node, *nodeNext ;
         if ( ovt->Verbosity > 2 ) printf ( "\nMemChunk List :: " ) ;
         for ( size = 0, node = dllist_First ( ( dllist* ) _OMS_->OvtMemChunkList ) ; node ; node = nodeNext )
@@ -101,7 +100,7 @@ _OVT_CalculateShowMemList ( OpenVmTil * ovt )
             if ( ovt->Verbosity > 2 ) MemChunk_Show ( ( MemChunk * ) node ) ;
             size += ( ( MemChunk * ) node )->mc_ChunkSize ;
         }
-        for ( node = dllist_First ( ( dllist* ) & _OSMS_->HistorySpace_MemChunkStringList ) ; node ; node = nodeNext )
+        for ( node = dllist_First ( ( dllist* ) _OSMS_->HistorySpace_MemChunkStringList ) ; node ; node = nodeNext )
         {
             nodeNext = dlnode_Next ( node ) ;
             if ( ovt->Verbosity > 2 ) MemChunk_Show ( ( MemChunk * ) node ) ;
@@ -113,18 +112,18 @@ _OVT_CalculateShowMemList ( OpenVmTil * ovt )
             if ( ovt->Verbosity > 2 ) MemChunk_Show ( ( MemChunk * ) node ) ;
             size += ( ( MemChunk * ) node )->mc_ChunkSize ;
         }
-        diff = _OMS_->RemainingAllocated - size - _OSMS_->HistoryAllocated ;
-        if ( diff ) //|| ovt->Verbosity > 2 )
+        ovt->TotalRemainingAccounted = size ;
+        diff = abs ( _OMS_->RemainingAllocated + _OSMS_->RemainingAllocated - ovt->TotalRemainingAccounted ) ;
+        diff -= (sizeof ( OVT_MemSystem ) + sizeof ( OVT_StaticMemSystem ) + ( 2 * sizeof ( dlnode ) + sizeof (dllist) ) ) ; // remaining STATIC allocated mem accounted in the StaticMemSystem
+        if ( diff )
         {
-            printf ( "\nTotal Size = %9ld : _OMS_->RemainingAllocated = %9ld :: diff = %6ld", size, _OMS_->RemainingAllocated, diff ) ;
+            printf ( "\nTotalRemainingAccounted       = %9ld : RemainingAllocated = %9ld :: diff = %6ld :: mmaped = %9ld", 
+                size, _OMS_->RemainingAllocated + _OSMS_->RemainingAllocated, diff, mmaped ) ;
             fflush ( stdout ) ;
         }
         Printf ( "\nNon-Static Mem Allocated      = %9ld", ovt->TotalNbaAccountedMemAllocated ) ;
-        //printf ( "\n_OS_->Mmap_RemainingMemoryAllocated                     = %9ld : <=: _OS_->Mmap_RemainingMemoryAllocated", _OS_->Mmap_RemainingMemoryAllocated ) ;
     }
-    ovt->PermanentMemListRemainingAccounted = size ;
-
-    return size ;
+    return diff ;
 }
 
 void
@@ -135,7 +134,6 @@ _OVT_CalculateAndShow_TotalNbaAccountedMemAllocated ( OpenVmTil * ovt, Boolean s
         dlnode * node, * nextNode, *msNode, *nextMsNode ;
         NamedByteArray * nba ;
         MemorySpace * ms ;
-        //Boolean flag = 0 ;
         ovt->TotalNbaAccountedMemRemaining = 0 ;
         ovt->TotalNbaAccountedMemAllocated = 0 ;
         if ( ovt && ovt->MemorySpace0 )
@@ -165,6 +163,10 @@ _OVT_CalculateAndShow_TotalNbaAccountedMemAllocated ( OpenVmTil * ovt, Boolean s
                 }
             }
         }
+        nba = _OSMS_->StaticMemSpace ;
+        NBA_AccountRemainingAndShow ( nba, showFlag ) ;
+        ovt->TotalNbaAccountedMemAllocated += nba->TotalAllocSize ;
+        ovt->TotalNbaAccountedMemRemaining += nba->MemRemaining ;
     }
 }
 
@@ -189,36 +191,22 @@ _OVT_ShowMemoryAllocated ( OpenVmTil * ovt )
     Boolean vf = ( ovt->Verbosity > 1 ) ;
     if ( ! vf ) Printf ( c_gu ( "\nIncrease the verbosity setting to 2 or more for more info here. ( Eg. : verbosity 2 = )" ) ) ;
     OVT_CalculateAndShow_TotalNbaAccountedMemAllocated ( ovt, 1 ) ;
-    _OVT_CalculateShowMemList ( ovt ) ;
-    int64 leak = abs ( ovt->PermanentMemListRemainingAccounted - _OMS_->RemainingAllocated ) - _OSMS_->HistoryAllocated ; //( _OMS_->Allocated - _OMS_->Freed ) ) ; //- _OS_->HistoryAllocation ; //sizeof (OVT_Static ) ;
-    int64 memDiff2 = _OMS_->RemainingAllocated - ovt->PermanentMemListRemainingAccounted - _OSMS_->HistoryAllocated ;
-    byte * memDiff2s = ( byte* ) "\nCurrent Unaccounted Diff (leak?) = %9d : <=: _OS_->Mmap_RemainingMemoryAllocated - ovt->PermanentMemListRemainingAccounted" ;
-    byte * leaks = ( byte* ) "\nleak?                            = %9d : <=  ( mmap_TotalMemAllocated - mmap_TotalMemFreed ) - ( _OS_->TotalMemAllocated - _OS_->TotalMemFreed ) - _OS_->HistoryAllocation -_OS_->StaticAllocation" ;
-    if ( memDiff2 ) Printf ( c_ad ( memDiff2s ), memDiff2 ) ;
-    else if ( vf ) Printf ( c_ud ( memDiff2s ), memDiff2 ) ;
-    if ( leak ) Printf ( c_ad ( leaks ), leak ) ;
-    else if ( vf ) Printf ( c_ud ( leaks ), leak ) ;
-    if ( memDiff2 || leak || vf )
-    {
-        Printf ( "\nTotalNbaAccountedMemAllocated      = %9d : <=: ovt->TotalNbaAccountedMemAllocated", ovt->TotalNbaAccountedMemAllocated ) ;
-        Printf ( "\nMem Used - Categorized  = %9d : <=: ovt->TotalNbaAccountedMemAllocated - ovt->TotalNbaAccountedMemRemaining", ovt->TotalNbaAccountedMemAllocated - ovt->TotalNbaAccountedMemRemaining ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nTotalNbaAccountedMemRemaining      = %9d : <=: ovt->TotalNbaAccountedMemRemaining", ovt->TotalNbaAccountedMemRemaining ) ;
-        Printf ( "\nMmap_RemainingMemoryAllocated      = %9d : <=: _OS_->Mmap_RemainingMemoryAllocated", _OMS_->RemainingAllocated ) ;
-        Printf ( "\nPermanentMemListRemainingAccounted = %9d : <=: ovt->PermanentMemListRemainingAccounted", ovt->PermanentMemListRemainingAccounted ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nTotal Mem Remaining = %9d : <=: _OS_->TotalMemAllocated - _OS_->TotalMemFreed", _OMS_->Allocated - _OMS_->Freed ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nTotal Mem Allocated = %9d : <=: _OS_->TotalMemAllocated", _OSMS_->Static_Allocated ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nTotal Mem Freed     = %9d : <=: _OS_->TotalMemFreed", _OMS_->Freed ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nTotal Mem Remaining = %9d : <=: _OS_->TotalMemAllocated - _OS_->TotalMemFreed", _OMS_->Allocated - _OMS_->Freed ) ; //+ ovt->UnaccountedMem ) ) ;
-        Printf ( "\nOVT_MmapAllocated   = %9d", _OMS_->Allocated ) ;
-    }
-    Printf ( "\nHistoryAllocation             = %9d", _OSMS_->HistoryAllocated ) ;
-    Printf ( "\nTotal Memory leaks            = %9d", leak ) ;
-
+    int64 aleak = _OVT_CalculateShowMemList ( ovt ) ;
+    int64 leak = mmaped - ( _OSMS_->RemainingAllocated + _OMS_->RemainingAllocated ) ;
+    Printf ( "\nTotal Accounting errors       = %9d", aleak ) ;
+    Printf ( "\nTotal Actual leaks            = %9d", leak ) ;
     Printf ( "\nNBA ReAllocations             = %9d", _O_->ReAllocations ) ;
     int64 wordSize = ( sizeof ( Word ) + sizeof ( WordData ) ) ;
     Printf ( "\nRecycledWordCount             = %9d : %-5d x %3d bytes", _O_->MemorySpace0->RecycledWordCount * wordSize, _O_->MemorySpace0->RecycledWordCount, wordSize ) ;
     Printf ( "\nWordsInRecycling              = %9d : %-5d x %3d bytes\n", _O_->MemorySpace0->WordsInRecycling * wordSize, _O_->MemorySpace0->WordsInRecycling, wordSize ) ;
     Buffer_PrintBuffers ( ) ;
+    if ( leak )
+    {
+        Printf ("\n_OSMS_->Allocated = %ld : _OSMS_->Freed = %ld : _OSMS_->RemainingAllocated = %ld", _OSMS_->Allocated, _OSMS_->Freed, _OSMS_->RemainingAllocated ) ;
+        Printf ("\n_OMS_->Allocated = %ld : _OMS_->Freed = %ld : _OMS_->RemainingAllocated = %ld", _OMS_->Allocated, _OMS_->Freed, _OMS_->RemainingAllocated ) ;
+        Printf ("\nmmaped = %ld : mmaped - ( _OSMS_->RemainingAllocated + _OMS_->RemainingAllocated ) = %ld", mmaped, 
+            mmaped - ( _OSMS_->RemainingAllocated + _OMS_->RemainingAllocated ) ) ;
+    }
 }
 
 // 'mem'
@@ -241,75 +229,118 @@ OVT_CheckCodeSpaceForRoom ( )
     _OVT_CheckCodeSpaceForRoom ( 4 * K ) ;
 }
 
-// only check a first node, if no first node the list is empty
-
-byte *
-DLList_CheckRecycledForAllocation ( dllist * list, int64 size )
+void
+OVT_MemList_DeleteNBAMemory ( byte * name, Boolean reinitFlag )
 {
-    DLNode * node = 0 ;
-    if ( list ) node = ( DLNode* ) dllist_First ( ( dllist* ) list ) ;
-    if ( node )
+    NamedByteArray *nba = _OVT_Find_NBA ( name ) ;
+    NamedByteArray_Delete ( nba, reinitFlag ) ;
+}
+
+void
+OVT_MemList_FreeNBAMemory ( byte * name, uint64 moreThan, int64 always )
+{
+    NamedByteArray *nba = _OVT_Find_NBA ( name ) ;
+    _OVT_MemList_FreeNBAMemory ( nba, moreThan, always ) ;
+}
+
+void
+OVT_MemListFree_ContextMemory ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "ContextSpace", 1 * M, 1 ) ;
+}
+
+void
+OVT_MemListFree_TempObjects ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "TempObjectSpace", 1 * M, 1 ) ;
+}
+
+void
+OVT_MemListFree_Objects ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "ObjectSpace", 1 * M, 1 ) ;
+}
+
+void
+_OVT_MemListFree_LispSpace ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "LispSpace", 1 * M, 1 ) ;
+}
+
+void
+OVT_MemListFree_LispSpace ( )
+{
+    _LC_Delete ( _LC_ ) ;
+}
+
+void
+_OVT_MemListFree_WordRecyclingSpace ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "WordRecylingSpace", 0, 1 ) ;
+}
+
+void
+_OVT_MemListFree_CompilerTempObjectSpace ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "CompilerTempObjectSpace", 0, 1 ) ;
+}
+
+void
+OVT_MemListFree_CompilerTempObjects ( )
+{
+    _OVT_MemListFree_CompilerTempObjectSpace ( ) ;
+}
+
+void
+OVT_MemListFree_LispTemp ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "LispTempSpace", 2 * M, 1 ) ;
+    if ( _LC_ )
     {
-        dlnode_Remove ( ( dlnode* ) node ) ; // necessary else we destroy the list!
-        Mem_Clear ( ( byte* ) node, size ) ;
-        node->n_DLNode.n_InUseFlag = N_IN_USE ;
-        return ( byte* ) node ;
-    }
-    else return 0 ;
-}
-
-void
-OVT_RecyclingAccounting ( int64 flag )
-{
-    if ( flag == OVT_RA_RECYCLED )
-    {
-        _O_->MemorySpace0->RecycledWordCount ++ ;
-        _O_->MemorySpace0->WordsInRecycling -- ;
-    }
-    else if ( flag == OVT_RA_ADDED ) _O_->MemorySpace0->WordsInRecycling ++ ;
-
-}
-
-void
-OVT_Recycle ( dlnode * anode )
-{
-    if ( anode ) dllist_AddNodeToTail ( _O_->RecycledWordList, anode ) ;
-    OVT_RecyclingAccounting ( OVT_RA_ADDED ) ;
-}
-
-// put a word on the recycling list
-
-void
-Word_Recycle ( Word * w )
-{
-    OVT_Recycle ( ( dlnode * ) w ) ;
-    w->W_ObjectAttributes &= ~ ( RECYCLABLE_COPY | RECYCLABLE_LOCAL ) ;
-}
-
-void
-dbg_new ( Word * w )
-{
-    if ( ( uint64 ) w == 0x7ffff4928020 )
-        Printf ( "\n got it at %s", Context_Location ( ) ) ;
-}
-
-void
-_CheckRecycleWord ( Node * node )
-{
-    Word * w = ( Word * ) node ;
-    if ( w && ( w->W_ObjectAttributes & ( RECYCLABLE_COPY | RECYCLABLE_LOCAL ) ) )
-    {
-        if ( _O_->Verbosity > 2 ) _Printf ( "\n_CheckRecycleWord : recycling : %s%s%s",
-            w->S_ContainingNamespace ? w->S_ContainingNamespace->Name : ( byte* ) "", w->S_ContainingNamespace ? ( byte* ) "." : ( byte* ) "", w->Name ) ; //, Pause () ;
-        Word_Recycle ( w ) ;
+        _dllist_Init ( _LC_->LispTempNamespace->W_List ) ;
+        LC_Init_Variables ( _LC_ ) ;
     }
 }
 
-// check a compiler word list for recycleable words and add them to the recycled word list : _O_->MemorySpace0->RecycledWordList
+void
+OVT_MemListFree_Session ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "SessionObjectsSpace", 2 * M, 1 ) ;
+}
 
 void
-DLList_Recycle_NamespaceList ( dllist * list )
+OVT_MemListFree_Buffers ( )
 {
-    dllist_Map ( list, ( MapFunction0 ) _CheckRecycleWord ) ;
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "BufferSpace", 2 * M, 0 ) ;
+}
+
+void
+OVT_MemListFree_HistorySpace ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "HistorySpace", 1 * M, 0 ) ;
+}
+
+void
+_OVT_MemListFree_CSLInternal ( )
+{
+    OVT_MemList_FreeNBAMemory ( ( byte* ) "CSLInternalSpace", 0, 1 ) ;
+}
+
+void
+_NBAsMemList_FreeTypes ( int64 allocType, int64 exactFlag )
+{
+    dllist_Map2 ( _O_->MemorySpace0->NBAs, ( MapFunction2 ) NBA_FreeChunkType, allocType, exactFlag ) ;
+}
+
+void
+NBAsMemList_FreeExactType ( int64 allocType )
+{
+    _NBAsMemList_FreeTypes ( allocType, 1 ) ;
+}
+
+void
+NBAsMemList_FreeVariousTypes ( int64 allocType )
+{
+    _NBAsMemList_FreeTypes ( allocType, 0 ) ;
 }
 

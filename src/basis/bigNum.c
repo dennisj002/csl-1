@@ -175,11 +175,11 @@ _BigNum_FPrint ( mpfr_t * value )
     byte * format ;
     if ( _O_->Verbosity )
     {
-        if ( ! Check_Error_BigNum ( ( uint64 )value ) )
+        if ( ! Check_Error_BigNum ( ( uint64 ) value ) )
         {
-            if ( NUMBER_BASE_GET()  == 10 ) format = ( byte* ) " %*.*Rf" ;
-            else if ( NUMBER_BASE_GET() == 2 ) format = ( byte* ) " %*.*Rb" ;
-            else if ( NUMBER_BASE_GET() == 16 ) format = ( byte* ) " %*.*Rx" ;
+            if ( NUMBER_BASE_GET ( ) == 10 ) format = ( byte* ) " %*.*Rf" ;
+            else if ( NUMBER_BASE_GET ( ) == 2 ) format = ( byte* ) " %*.*Rb" ;
+            else if ( NUMBER_BASE_GET ( ) == 16 ) format = ( byte* ) " %*.*Rx" ;
             mpfr_printf ( ( char* ) format, _Context_->System0->BigNum_Printf_Width, _Context_->System0->BigNum_Printf_Precision, *value ) ;
             fflush ( stdout ) ;
         }
@@ -192,20 +192,20 @@ _BigNum_snfPrint2 ( char * buf, byte * name, mpfr_t * value )
     byte * format ;
     if ( _O_->Verbosity )
     {
-        if ( ! Check_Error_BigNum ( ( uint64 )value ) )
+        if ( ! Check_Error_BigNum ( ( uint64 ) value ) )
         {
             if ( name )
             {
-                if ( NUMBER_BASE_GET() == 10 ) format = ( byte* ) " %s = %*.*Rf" ;
-                else if ( NUMBER_BASE_GET() == 2 ) format = ( byte* ) " %s = %*.*Rb" ;
-                else if ( NUMBER_BASE_GET() == 16 ) format = ( byte* ) " %s = %*.*Rx" ;
+                if ( NUMBER_BASE_GET ( ) == 10 ) format = ( byte* ) " %s = %*.*Rf" ;
+                else if ( NUMBER_BASE_GET ( ) == 2 ) format = ( byte* ) " %s = %*.*Rb" ;
+                else if ( NUMBER_BASE_GET ( ) == 16 ) format = ( byte* ) " %s = %*.*Rx" ;
                 mpfr_sprintf ( buf, format, name, _Context_->System0->BigNum_Printf_Width, _Context_->System0->BigNum_Printf_Precision, *value ) ;
             }
             else
             {
-                if ( NUMBER_BASE_GET() == 10 ) format = ( byte* ) " %*.*Rf" ;
-                else if ( NUMBER_BASE_GET() == 2 ) format = ( byte* ) " %*.*Rb" ;
-                else if ( NUMBER_BASE_GET() == 16 ) format = ( byte* ) " %*.*Rx" ;
+                if ( NUMBER_BASE_GET ( ) == 10 ) format = ( byte* ) " %*.*Rf" ;
+                else if ( NUMBER_BASE_GET ( ) == 2 ) format = ( byte* ) " %*.*Rb" ;
+                else if ( NUMBER_BASE_GET ( ) == 16 ) format = ( byte* ) " %*.*Rx" ;
                 mpfr_sprintf ( buf, format, _Context_->System0->BigNum_Printf_Width, _Context_->System0->BigNum_Printf_Precision, *value ) ;
             }
             fflush ( stdout ) ;
@@ -230,9 +230,9 @@ BigNum_FPrint2 ( )
     if ( _O_->Verbosity )
     {
 #if 1        
-        if ( NUMBER_BASE_GET() == 10 ) format = "%*.*Rf" ;
-        else if ( NUMBER_BASE_GET() == 2 ) format = "%*.*Rb" ;
-        else if ( NUMBER_BASE_GET() == 16 ) format = "%*.*Rx" ;
+        if ( NUMBER_BASE_GET ( ) == 10 ) format = "%*.*Rf" ;
+        else if ( NUMBER_BASE_GET ( ) == 2 ) format = "%*.*Rb" ;
+        else if ( NUMBER_BASE_GET ( ) == 16 ) format = "%*.*Rx" ;
         mpfr_printf ( format, _Context_->System0->BigNum_Printf_Width, _Context_->System0->BigNum_Printf_Precision, *value ) ;
 #else
         mpfr_printf ( "%*.*Rf", 16, 16, *value ) ;
